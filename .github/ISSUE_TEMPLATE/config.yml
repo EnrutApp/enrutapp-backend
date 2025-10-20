@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Preguntas y Discusiones
+    url: https://github.com/EnrutApp/enrutapp-backend/discussions
+    about: Para preguntas generales, ideas o discusiones sobre el proyecto
+  - name: 📚 Documentación
+    url: https://github.com/EnrutApp/enrutapp-backend/blob/main/CONTRIBUTING.md
+    about: Consulta la guía de contribución antes de reportar un problema
