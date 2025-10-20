@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuarios {
+  idUsuario            String    @id @db.VarChar(36)
+  idRol                String    @db.VarChar(36)
+  foto                 String?
+  tipoDoc              String    @db.VarChar(36)
+  numDocumento         String    @unique @db.VarChar(20)
+  nombre               String    @db.VarChar(100)
+  telefono             String    @db.VarChar(20)
+  correo               String    @unique @db.VarChar(100)
+  contrasena           String    @db.VarChar(255)
+  direccion            String    @db.VarChar(255)
+  idCiudad             Int
+  estado               Boolean
+  resetPasswordCode    String?   @db.VarChar(100)
+  resetPasswordExpires DateTime?
+
+  rol           Roles    @relation(fields: [idRol], references: [idRol])
+  tipoDocumento TiposDoc @relation(fields: [tipoDoc], references: [idTipoDoc])
+  ciudad        Ciudades @relation(fields: [idCiudad], references: [idCiudad])
+
+  @@map("Usuarios")
+}
+
+model Ciudades {
+  idCiudad     Int        @id @default(autoincrement())
+  nombreCiudad String     @unique @db.VarChar(100)
+  usuarios     Usuarios[]
+
+  @@map("Ciudades")
+}
+
+model Roles {
+  idRol       String  @id @db.VarChar(36)
+  nombreRol   String  @unique @db.VarChar(50)
+  descripcion String? @db.Text
+  estado      Boolean
+
+  usuarios Usuarios[]
+
+  @@map("Roles")
+}
+
+model TiposDoc {
+  idTipoDoc     String @id @db.VarChar(36)
+  nombreTipoDoc String @unique @db.VarChar(50)
+
+  usuarios Usuarios[]
+
+  @@map("TiposDoc")
+}
