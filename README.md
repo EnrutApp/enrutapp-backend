@@ -9,11 +9,18 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/EnrutApp/enrutapp-backend/actions/workflows/ci.yml">
+    <img src="https://github.com/EnrutApp/enrutapp-backend/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline" />
+  </a>
+  <a href="https://codecov.io/gh/EnrutApp/enrutapp-backend">
+    <img src="https://codecov.io/gh/EnrutApp/enrutapp-backend/branch/main/graph/badge.svg" alt="Coverage" />
+  </a>
   <img src="https://img.shields.io/badge/NestJS-11.0.10-E0234E?logo=nestjs&logoColor=white" alt="NestJS" />
   <img src="https://img.shields.io/badge/TypeScript-5.9.3-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Prisma-6.17.1-2D3748?logo=prisma&logoColor=white" alt="Prisma" />
   <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white" alt="MySQL" />
-  <img src="https://img.shields.io/badge/Node.js-24.10.0-339933?logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Node.js-18%20%7C%2020%20%7C%2022-339933?logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/github/license/EnrutApp/enrutapp-backend" alt="License" />
 </p>
 
 ---
@@ -214,6 +221,38 @@ style: Cambios de formato (no afectan el código)
 refactor: Refactorización de código
 test: Añadir o modificar tests
 chore: Cambios en build o herramientas
+```
+
+## 🤝 Desarrollo
+
+Esta es una guía rápida. Para más detalles, consulta [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Flujo de trabajo
+
+```bash
+# 1. Crear branch
+git checkout -b feature/nombre
+
+# 2. Desarrollar y verificar
+npm run lint:check
+npm run test
+
+# 3. Commit y push
+git commit -m "feat: descripción"
+git push origin feature/nombre
+
+# 4. Crear PR en GitHub
+```
+
+### Convenciones de Commits
+
+```
+feat: Nueva característica
+fix: Corrección de bug
+refactor: Refactorización
+chore: Mantenimiento
+docs: Documentación
+test: Tests
 ```
 
 ## 📄 Licencia
