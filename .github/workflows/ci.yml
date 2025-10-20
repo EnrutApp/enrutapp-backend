@@ -2,16 +2,16 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   # Job 1: Linting y Formateo
   lint:
     name: 🔍 Lint & Format Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
     strategy:
       matrix:
         node-version: [18, 20, 22]
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
     name: 🏗️ Build
     runs-on: ubuntu-latest
     needs: [lint, test]
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -102,7 +102,7 @@ jobs:
   prisma:
     name: 🗄️ Prisma Validation
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -119,7 +119,7 @@ jobs:
       - name: 🔍 Validate Prisma schema
         run: npx prisma validate
         env:
-          DATABASE_URL: "mysql://user:password@localhost:3306/testdb"
+          DATABASE_URL: 'mysql://user:password@localhost:3306/testdb'
 
       - name: 🔄 Generate Prisma Client
         run: npx prisma generate
@@ -128,7 +128,7 @@ jobs:
   security:
     name: 🔒 Security Audit
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, test, build, prisma, security]
     if: always()
-    
+
     steps:
       - name: 📊 Check overall status
         run: |

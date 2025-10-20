@@ -93,6 +93,7 @@ git push origin feature/nombre-descriptivo
 - `chore/nombre` - Mantenimiento
 
 **Ejemplos:**
+
 ```bash
 git checkout -b feature/modulo-reservas
 git checkout -b fix/validacion-email
@@ -175,16 +176,16 @@ async findUsuarioWithRol(id: string) {
 
 ### Nomenclatura
 
-| Elemento | Convención | Ejemplo |
-|----------|-----------|---------|
-| Variables | camelCase | `usuarioActivo` |
-| Funciones | camelCase | `obtenerUsuarios()` |
-| Clases | PascalCase | `UsuariosController` |
-| Interfaces | PascalCase con prefijo I | `IUsuarioResponse` |
-| Enums | PascalCase | `EstadoReserva` |
-| Constantes | UPPER_SNAKE_CASE | `MAX_INTENTOS_LOGIN` |
-| Archivos | kebab-case | `usuarios.controller.ts` |
-| DTOs | PascalCase con sufijo Dto | `CreateUsuarioDto` |
+| Elemento   | Convención                | Ejemplo                  |
+| ---------- | ------------------------- | ------------------------ |
+| Variables  | camelCase                 | `usuarioActivo`          |
+| Funciones  | camelCase                 | `obtenerUsuarios()`      |
+| Clases     | PascalCase                | `UsuariosController`     |
+| Interfaces | PascalCase con prefijo I  | `IUsuarioResponse`       |
+| Enums      | PascalCase                | `EstadoReserva`          |
+| Constantes | UPPER_SNAKE_CASE          | `MAX_INTENTOS_LOGIN`     |
+| Archivos   | kebab-case                | `usuarios.controller.ts` |
+| DTOs       | PascalCase con sufijo Dto | `CreateUsuarioDto`       |
 
 ### Estructura de Carpetas
 
@@ -349,6 +350,7 @@ src/modules/nombre-modulo/
 ### GitHub Actions
 
 El CI/CD se ejecuta automáticamente en cada push/PR y verifica:
+
 - ✅ Linting
 - ✅ Tests en Node 18, 20, 22
 - ✅ Build exitoso
