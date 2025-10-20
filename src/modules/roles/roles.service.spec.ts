@@ -6,7 +6,8 @@ import { CreateRolDto, UpdateRolDto } from './dto';
 
 describe('RolesService', () => {
   let service: RolesService;
-  let prismaService: PrismaService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _prismaService: PrismaService;
 
   const mockPrismaService = {
     roles: {
@@ -37,7 +38,7 @@ describe('RolesService', () => {
     }).compile();
 
     service = module.get<RolesService>(RolesService);
-    prismaService = module.get<PrismaService>(PrismaService);
+    _prismaService = module.get<PrismaService>(PrismaService);
 
     // Limpiar mocks entre tests
     jest.clearAllMocks();

@@ -64,7 +64,7 @@ async function bootstrap() {
           'Ingrese el token JWT obtenido del endpoint /api/auth/login',
         in: 'header',
       },
-      'JWT-auth', 
+      'JWT-auth',
     )
     .build();
 

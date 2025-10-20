@@ -5,7 +5,8 @@ import { CreateRolDto, UpdateRolDto } from './dto';
 
 describe('RolesController', () => {
   let controller: RolesController;
-  let service: RolesService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _service: RolesService;
 
   const mockRolesService = {
     findAll: jest.fn(),
@@ -34,7 +35,7 @@ describe('RolesController', () => {
     }).compile();
 
     controller = module.get<RolesController>(RolesController);
-    service = module.get<RolesService>(RolesService);
+    _service = module.get<RolesService>(RolesService);
 
     jest.clearAllMocks();
   });
@@ -56,7 +57,7 @@ describe('RolesController', () => {
       const result = await controller.findAll();
 
       expect(result).toEqual(expectedResult);
-      expect(service.findAll).toHaveBeenCalled();
+      expect(mockRolesService.findAll).toHaveBeenCalled();
     });
   });
 
@@ -73,7 +74,7 @@ describe('RolesController', () => {
       const result = await controller.findOne(mockRol.idRol);
 
       expect(result).toEqual(expectedResult);
-      expect(service.findOne).toHaveBeenCalledWith(mockRol.idRol);
+      expect(mockRolesService.findOne).toHaveBeenCalledWith(mockRol.idRol);
     });
   });
 
@@ -95,7 +96,7 @@ describe('RolesController', () => {
       const result = await controller.create(createRolDto);
 
       expect(result).toEqual(expectedResult);
-      expect(service.create).toHaveBeenCalledWith(createRolDto);
+      expect(mockRolesService.create).toHaveBeenCalledWith(createRolDto);
     });
   });
 
@@ -116,7 +117,10 @@ describe('RolesController', () => {
       const result = await controller.update(mockRol.idRol, updateRolDto);
 
       expect(result).toEqual(expectedResult);
-      expect(service.update).toHaveBeenCalledWith(mockRol.idRol, updateRolDto);
+      expect(mockRolesService.update).toHaveBeenCalledWith(
+        mockRol.idRol,
+        updateRolDto,
+      );
     });
   });
 
@@ -132,7 +136,7 @@ describe('RolesController', () => {
       const result = await controller.remove(mockRol.idRol);
 
       expect(result).toEqual(expectedResult);
-      expect(service.remove).toHaveBeenCalledWith(mockRol.idRol);
+      expect(mockRolesService.remove).toHaveBeenCalledWith(mockRol.idRol);
     });
   });
 });

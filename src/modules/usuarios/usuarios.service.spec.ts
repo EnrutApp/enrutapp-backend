@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { PrismaService } from '../../database/prisma.service';
-import { CreateUsuarioDto, UpdateUsuarioDto } from './dto';
 
 describe('UsuariosService', () => {
   let service: UsuariosService;
-  let prismaService: PrismaService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _prismaService: PrismaService;
 
   const mockPrismaService = {
     usuarios: {
@@ -55,7 +55,7 @@ describe('UsuariosService', () => {
     }).compile();
 
     service = module.get<UsuariosService>(UsuariosService);
-    prismaService = module.get<PrismaService>(PrismaService);
+    _prismaService = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();
   });
