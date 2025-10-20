@@ -118,6 +118,8 @@ jobs:
 
       - name: 🔍 Validate Prisma schema
         run: npx prisma validate
+        env:
+          DATABASE_URL: "mysql://user:password@localhost:3306/testdb"
 
       - name: 🔄 Generate Prisma Client
         run: npx prisma generate
