@@ -11,9 +11,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     await this.$disconnect();
   }
 
-  async enableShutdownHooks(app: INestApplication) {
-    // Forzamos el tipo del evento para evitar el error de TypeScript
-    (this.$on as any)('beforeExit', async () => {
+  enableShutdownHooks(app: INestApplication) {
+    this.$on('beforeExit', async () => {
       await app.close();
     });
   }
