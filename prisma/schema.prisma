@@ -64,3 +64,14 @@ model TiposDoc {
 
   @@map("TiposDoc")
 }
+
+model Ubicaciones {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @db.VarChar(100)
+  direccion   String   @db.VarChar(255)
+  estado      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("Ubicaciones")
+}

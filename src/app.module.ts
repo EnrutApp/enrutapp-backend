@@ -9,6 +9,8 @@ import { RolesModule } from './modules/roles/roles.module';
 import { CiudadesModule } from './modules/ciudades/ciudades.module';
 import { TiposDocumentoModule } from './modules/tipos-documento/tipos-documento.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { UbicacionesModule } from './modules/ubicaciones/ubicaciones.module';
+import { PrismaModule } from './database/prisma.module';
 
 /**
  * Módulo raíz de la aplicación
@@ -18,6 +20,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
   imports: [
     // Módulo global de base de datos
     DatabaseModule,
+    PrismaModule,
 
     // Módulos de funcionalidad
     AuthModule,
@@ -25,6 +28,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     RolesModule,
     CiudadesModule,
     TiposDocumentoModule,
+    UbicacionesModule,
   ],
   controllers: [AppController],
   providers: [
