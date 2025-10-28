@@ -36,7 +36,7 @@ import { RutasModule } from './modules/Rutas/rutas.module';
     TiposVehiculoModule,
     MarcasVehiculosModule,
     UbicacionesModule,
-  RutasModule,
+    RutasModule,
   ],
   controllers: [AppController],
   providers: [
