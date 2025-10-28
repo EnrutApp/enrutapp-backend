@@ -61,7 +61,7 @@ model TiposDoc {
   nombreTipoDoc String @unique @db.VarChar(50)
 
   usuarios Usuarios[]
-
+  
   @@map("TiposDoc")
 }
 

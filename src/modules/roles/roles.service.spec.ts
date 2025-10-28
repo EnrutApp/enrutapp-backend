@@ -6,7 +6,6 @@ import { CreateRolDto, UpdateRolDto } from './dto';
 
 describe('RolesService', () => {
   let service: RolesService;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _prismaService: PrismaService;
 
   const mockPrismaService = {
@@ -128,6 +127,7 @@ describe('RolesService', () => {
       };
 
       const prismaError = new Error('Unique constraint violation');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (prismaError as any).code = 'P2002';
 
       mockPrismaService.roles.create.mockRejectedValue(prismaError);

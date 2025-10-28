@@ -34,12 +34,10 @@ export class TiposDocumentoController {
           {
             idTipoDoc: '550e8400-e29b-41d4-a716-446655440001',
             nombreTipoDoc: 'Cédula de Ciudadanía',
-            abreviatura: 'CC',
           },
           {
             idTipoDoc: '550e8400-e29b-41d4-a716-446655440002',
             nombreTipoDoc: 'Tarjeta de Identidad',
-            abreviatura: 'TI',
           },
         ],
       },
@@ -68,7 +66,6 @@ export class TiposDocumentoController {
         data: {
           idTipoDoc: '550e8400-e29b-41d4-a716-446655440003',
           nombreTipoDoc: 'Pasaporte',
-          abreviatura: 'PS',
         },
         message: 'Tipo de documento creado exitosamente',
       },

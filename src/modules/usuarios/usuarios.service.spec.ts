@@ -5,7 +5,6 @@ import { PrismaService } from '../../database/prisma.service';
 
 describe('UsuariosService', () => {
   let service: UsuariosService;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _prismaService: PrismaService;
 
   const mockPrismaService = {
