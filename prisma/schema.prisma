@@ -137,24 +137,24 @@ model Ubicacion {
   longitud        Decimal? @db.Decimal(11, 8)
 
   // Relaciones
-  origenes        Origen[]
-  destinos        Destino[]
+  origenes Origen[]
+  destinos Destino[]
 }
 
 model Origen {
-  idOrigen     String    @id @default(uuid()) @db.VarChar(36)
-  idUbicacion  String    @db.VarChar(36)
-  descripcion  String?   @db.VarChar(255)
+  idOrigen    String  @id @default(uuid()) @db.VarChar(36)
+  idUbicacion String  @db.VarChar(36)
+  descripcion String? @db.VarChar(255)
 
   // Relaciones
-  ubicacion    Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
-  rutasOrigen  Ruta[]    @relation("RutasDesdeOrigen")
+  ubicacion   Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
+  rutasOrigen Ruta[]    @relation("RutasDesdeOrigen")
 }
 
 model Destino {
-  idDestino    String    @id @default(uuid()) @db.VarChar(36)
-  idUbicacion  String    @db.VarChar(36)
-  descripcion  String?   @db.VarChar(255)
+  idDestino   String  @id @default(uuid()) @db.VarChar(36)
+  idUbicacion String  @db.VarChar(36)
+  descripcion String? @db.VarChar(255)
 
   // Relaciones
   ubicacion    Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
@@ -162,16 +162,16 @@ model Destino {
 }
 
 model Ruta {
-  idRuta          String   @id @default(uuid()) @db.VarChar(36)
-  idOrigen        String   @db.VarChar(36)
-  idDestino       String   @db.VarChar(36)
-  distancia       Decimal? @db.Decimal(10, 2)
-  observaciones   String?  @db.VarChar(100)
-  tiempoEstimado  String?  @db.VarChar(10)  // ← CAMBIA ESTE
-  precioBase      Decimal? @db.Decimal(10, 2)
-  estado          String?  @db.VarChar(50)
+  idRuta         String   @id @default(uuid()) @db.VarChar(36)
+  idOrigen       String   @db.VarChar(36)
+  idDestino      String   @db.VarChar(36)
+  distancia      Decimal? @db.Decimal(10, 2)
+  observaciones  String?  @db.VarChar(100)
+  tiempoEstimado String?  @db.VarChar(10) // ← CAMBIA ESTE
+  precioBase     Decimal? @db.Decimal(10, 2)
+  estado         String?  @db.VarChar(50)
 
   // Relaciones
-  origen   Origen  @relation("RutasDesdeOrigen", fields: [idOrigen], references: [idOrigen])
-  destino  Destino @relation("RutasHaciaDestino", fields: [idDestino], references: [idDestino])
+  origen  Origen  @relation("RutasDesdeOrigen", fields: [idOrigen], references: [idOrigen])
+  destino Destino @relation("RutasHaciaDestino", fields: [idDestino], references: [idDestino])
 }
