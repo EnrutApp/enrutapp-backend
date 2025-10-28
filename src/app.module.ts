@@ -9,6 +9,9 @@ import { RolesModule } from './modules/roles/roles.module';
 import { CiudadesModule } from './modules/ciudades/ciudades.module';
 import { TiposDocumentoModule } from './modules/tipos-documento/tipos-documento.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { VehiculosModule } from './modules/vehiculos/vehiculos.module';
+import { TiposVehiculoModule } from './modules/tipos-vehiculo/tipos-vehiculo.module';
+import { MarcasVehiculosModule } from './modules/marcas-vehiculos/marcas-vehiculos.module';
 
 /**
  * Módulo raíz de la aplicación
@@ -25,6 +28,9 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     RolesModule,
     CiudadesModule,
     TiposDocumentoModule,
+    VehiculosModule,
+    TiposVehiculoModule,
+    MarcasVehiculosModule,
   ],
   controllers: [AppController],
   providers: [
