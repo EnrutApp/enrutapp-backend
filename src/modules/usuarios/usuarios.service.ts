@@ -1,7 +1,9 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { hash } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import * as bcrypt from 'bcryptjs';
+import { CreateUsuarioDto } from './dto/create-usuario.dto';
+import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 
 /**
  * Servicio de Usuarios
@@ -36,9 +38,20 @@ export class UsuariosService {
   /**
    * Obtiene todos los usuarios con sus relaciones
    */
-  async findAll() {
+  async findAll(filter?: { rol?: string }) {
     try {
+      const whereClause = filter?.rol
+        ? {
+            rol: {
+              is: {
+                nombreRol: filter.rol,
+              },
+            },
+          }
+        : undefined;
+
       const usuarios = await this.prisma.usuarios.findMany({
+        where: whereClause,
         include: {
           rol: true,
           tipoDocumento: true,
@@ -114,7 +127,7 @@ export class UsuariosService {
   /**
    * Crea un nuevo usuario
    */
-  async create(createUsuarioDto: any) {
+  async create(createUsuarioDto: CreateUsuarioDto) {
     try {
       // Validar que el rol existe
       if (!createUsuarioDto.idRol) {
@@ -136,25 +149,29 @@ export class UsuariosService {
       }
 
       // Normalizar datos
-      if (createUsuarioDto?.correo) {
-        createUsuarioDto.correo = String(createUsuarioDto.correo)
-          .trim()
-          .toLowerCase();
-      }
-      if (createUsuarioDto?.numDocumento) {
-        createUsuarioDto.numDocumento = String(
-          createUsuarioDto.numDocumento,
-        ).trim();
-      }
+      const correoNormalizado = String(createUsuarioDto.correo)
+        .trim()
+        .toLowerCase();
+      const numDocumentoNormalizado = String(
+        createUsuarioDto.numDocumento,
+      ).trim();
 
       // Hashear contraseña
-      const hashedPassword = await bcrypt.hash(createUsuarioDto.contrasena, 10);
+      const hashedPassword = await hash(createUsuarioDto.contrasena, 10);
 
       const nuevoUsuario = await this.prisma.usuarios.create({
         data: {
-          ...createUsuarioDto,
           idUsuario: uuidv4(),
+          idRol: createUsuarioDto.idRol,
+          foto: null,
+          tipoDoc: createUsuarioDto.tipoDoc || '',
+          numDocumento: numDocumentoNormalizado,
+          nombre: createUsuarioDto.nombre,
+          telefono: createUsuarioDto.telefono || '',
+          correo: correoNormalizado,
           contrasena: hashedPassword,
+          direccion: createUsuarioDto.direccion || '',
+          idCiudad: createUsuarioDto.idCiudad || 1,
           estado:
             typeof createUsuarioDto.estado === 'boolean'
               ? createUsuarioDto.estado
@@ -192,7 +209,7 @@ export class UsuariosService {
   /**
    * Actualiza un usuario existente
    */
-  async update(id: string, updateUsuarioDto: any) {
+  async update(id: string, updateUsuarioDto: UpdateUsuarioDto) {
     try {
       const usuarioExistente = await this.prisma.usuarios.findUnique({
         where: { idUsuario: id },
@@ -226,14 +243,14 @@ export class UsuariosService {
       }
 
       // Preparar datos para actualización
-      const dataToUpdate: any = { ...updateUsuarioDto };
+      type UpdateData = Partial<Omit<CreateUsuarioDto, 'contrasena'>> & {
+        contrasena?: string;
+      };
+      const dataToUpdate: UpdateData = { ...updateUsuarioDto };
 
       // Hashear contraseña si se está actualizando
       if (dataToUpdate.contrasena) {
-        dataToUpdate.contrasena = await bcrypt.hash(
-          dataToUpdate.contrasena,
-          10,
-        );
+        dataToUpdate.contrasena = await hash(dataToUpdate.contrasena, 10);
       }
 
       const usuarioActualizado = await this.prisma.usuarios.update({

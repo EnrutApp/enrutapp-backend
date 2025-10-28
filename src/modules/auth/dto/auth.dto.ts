@@ -43,22 +43,12 @@ export class LoginDto {
 
 export class RegisterDto {
   @ApiProperty({
-    description: 'ID único del usuario (UUID v4)',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-    type: String,
-    format: 'uuid',
-  })
-  @IsUUID(4, { message: 'El ID del usuario debe ser un UUID válido' })
-  @IsNotEmpty({ message: 'El ID del usuario es obligatorio' })
-  idUsuario!: string;
-
-  @ApiProperty({
     description: 'ID del rol asignado al usuario',
     example: '550e8400-e29b-41d4-a716-446655440001',
     type: String,
     format: 'uuid',
   })
-  @IsUUID(4, { message: 'El ID del rol debe ser un UUID válido' })
+  @IsUUID('all', { message: 'El ID del rol debe ser un UUID válido' })
   @IsNotEmpty({ message: 'El ID del rol es obligatorio' })
   idRol!: string;
 
@@ -68,7 +58,9 @@ export class RegisterDto {
     type: String,
     format: 'uuid',
   })
-  @IsUUID(4, { message: 'El ID del tipo de documento debe ser un UUID válido' })
+  @IsUUID('all', {
+    message: 'El ID del tipo de documento debe ser un UUID válido',
+  })
   @IsNotEmpty({ message: 'El tipo de documento es obligatorio' })
   tipoDoc!: string;
 

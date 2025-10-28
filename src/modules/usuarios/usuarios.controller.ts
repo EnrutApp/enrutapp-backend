@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -128,8 +129,8 @@ export class UsuariosController {
   @ApiUnauthorizedResponse({
     description: 'Token no válido o expirado',
   })
-  async findAll() {
-    return this.usuariosService.findAll();
+  async findAll(@Query('rol') rol?: string) {
+    return this.usuariosService.findAll({ rol });
   }
 
   /**

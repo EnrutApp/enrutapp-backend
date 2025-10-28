@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -13,14 +13,4 @@ export class CreateTipoDocumentoDto {
   @IsString({ message: 'El nombre del tipo de documento debe ser texto' })
   @IsNotEmpty({ message: 'El nombre del tipo de documento es obligatorio' })
   nombreTipoDoc!: string;
-
-  @ApiProperty({
-    description: 'Abreviatura del tipo de documento',
-    example: 'CC',
-    required: false,
-    type: String,
-  })
-  @IsString({ message: 'La abreviatura debe ser texto' })
-  @IsOptional()
-  abreviatura?: string;
 }
