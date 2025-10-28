@@ -14,6 +14,7 @@ import { TiposVehiculoModule } from './modules/tipos-vehiculo/tipos-vehiculo.mod
 import { MarcasVehiculosModule } from './modules/marcas-vehiculos/marcas-vehiculos.module';
 import { UbicacionesModule } from './modules/ubicaciones/ubicaciones.module';
 import { PrismaModule } from './database/prisma.module';
+import { RutasModule } from './modules/Rutas/rutas.module';
 
 /**
  * Módulo raíz de la aplicación
@@ -35,6 +36,7 @@ import { PrismaModule } from './database/prisma.module';
     TiposVehiculoModule,
     MarcasVehiculosModule,
     UbicacionesModule,
+  RutasModule,
   ],
   controllers: [AppController],
   providers: [
