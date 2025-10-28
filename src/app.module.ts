@@ -9,6 +9,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { CiudadesModule } from './modules/ciudades/ciudades.module';
 import { TiposDocumentoModule } from './modules/tipos-documento/tipos-documento.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { RutasModule } from './modules/Rutas/rutas.module';
 
 /**
  * Módulo raíz de la aplicación
@@ -25,6 +26,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     RolesModule,
     CiudadesModule,
     TiposDocumentoModule,
+    RutasModule,
   ],
   controllers: [AppController],
   providers: [
