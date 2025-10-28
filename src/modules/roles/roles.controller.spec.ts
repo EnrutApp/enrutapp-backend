@@ -5,7 +5,6 @@ import { CreateRolDto, UpdateRolDto } from './dto';
 
 describe('RolesController', () => {
   let controller: RolesController;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _service: RolesService;
 
   const mockRolesService = {
