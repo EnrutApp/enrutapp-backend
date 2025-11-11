@@ -22,13 +22,13 @@ import { Type, Transform } from 'class-transformer';
 export class CreateVehiculoDto {
   @ApiProperty({
     description:
-      'ID único del vehículo (UUID v4). Si no se proporciona, se genera automáticamente',
+      'ID único del vehículo (UUID). Si no se proporciona, se genera automáticamente',
     example: '550e8400-e29b-41d4-a716-446655440001',
     required: false,
     type: String,
     format: 'uuid',
   })
-  @IsUUID(4, { message: 'El ID del vehículo debe ser un UUID válido' })
+  @IsUUID('all', { message: 'El ID del vehículo debe ser un UUID válido' }) // <- CAMBIO AQUÍ
   @IsOptional()
   idVehiculo?: string;
 
@@ -38,7 +38,7 @@ export class CreateVehiculoDto {
     type: String,
     format: 'uuid',
   })
-  @IsUUID(4, { message: 'El ID del tipo de vehículo debe ser un UUID válido' })
+  @IsUUID('all', { message: 'El ID del tipo de vehículo debe ser un UUID válido' }) // <- CAMBIO AQUÍ
   @IsNotEmpty({ message: 'El tipo de vehículo es obligatorio' })
   idTipoVehiculo!: string;
 
@@ -48,7 +48,7 @@ export class CreateVehiculoDto {
     type: String,
     format: 'uuid',
   })
-  @IsUUID(4, { message: 'El ID de la marca debe ser un UUID válido' })
+  @IsUUID('all', { message: 'El ID de la marca debe ser un UUID válido' }) // <- CAMBIO AQUÍ
   @IsNotEmpty({ message: 'La marca del vehículo es obligatoria' })
   idMarcaVehiculo!: string;
 
@@ -102,7 +102,7 @@ export class CreateVehiculoDto {
 
   @ApiProperty({
     description:
-      'Número VIN del vehículo (Vehicle Identification Number - 17 caracteres)',
+      'Número VIN del vehículo (Vehicle Identification Number - 17 caracteres alfanuméricos)',
     example: '1HGBH41JXMN109186',
     required: false,
     type: String,
@@ -112,7 +112,7 @@ export class CreateVehiculoDto {
   @IsOptional()
   @Length(17, 17, { message: 'El VIN debe tener exactamente 17 caracteres' })
   @Matches(/^[A-HJ-NPR-Z0-9]{17}$/, {
-    message: 'El VIN debe contener solo caracteres alfanuméricos válidos',
+    message: 'El VIN debe contener solo caracteres alfanuméricos válidos (sin I, O, Q)',
   })
   vin?: string;
 
@@ -199,7 +199,6 @@ export class CreateVehiculoDto {
   @Transform(({ value }) => {
     if (value === 'true' || value === true) return true;
     if (value === 'false' || value === false) return false;
-    // Para evitar retornar `any`, en otros casos no transformar el campo
     return undefined;
   })
   @IsBoolean({ message: 'El estado debe ser verdadero o falso' })

@@ -15,6 +15,9 @@ import { MarcasVehiculosModule } from './modules/marcas-vehiculos/marcas-vehicul
 import { UbicacionesModule } from './modules/ubicaciones/ubicaciones.module';
 import { PrismaModule } from './database/prisma.module';
 import { RutasModule } from './modules/Rutas/rutas.module';
+import { ConductoresModule } from './modules/conductores/conductores.module';
+import { TurnosModule } from './modules/turnos/turnos.module';
+
 
 /**
  * Módulo raíz de la aplicación
@@ -26,6 +29,7 @@ import { RutasModule } from './modules/Rutas/rutas.module';
     DatabaseModule,
     PrismaModule,
 
+
     // Módulos de funcionalidad
     AuthModule,
     UsuariosModule,
@@ -36,7 +40,9 @@ import { RutasModule } from './modules/Rutas/rutas.module';
     TiposVehiculoModule,
     MarcasVehiculosModule,
     UbicacionesModule,
+    ConductoresModule,
     RutasModule,
+    TurnosModule,
   ],
   controllers: [AppController],
   providers: [
