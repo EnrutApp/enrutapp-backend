@@ -38,7 +38,9 @@ export class CreateVehiculoDto {
     type: String,
     format: 'uuid',
   })
-  @IsUUID('all', { message: 'El ID del tipo de vehículo debe ser un UUID válido' }) // <- CAMBIO AQUÍ
+  @IsUUID('all', {
+    message: 'El ID del tipo de vehículo debe ser un UUID válido',
+  }) // <- CAMBIO AQUÍ
   @IsNotEmpty({ message: 'El tipo de vehículo es obligatorio' })
   idTipoVehiculo!: string;
 
@@ -112,7 +114,8 @@ export class CreateVehiculoDto {
   @IsOptional()
   @Length(17, 17, { message: 'El VIN debe tener exactamente 17 caracteres' })
   @Matches(/^[A-HJ-NPR-Z0-9]{17}$/, {
-    message: 'El VIN debe contener solo caracteres alfanuméricos válidos (sin I, O, Q)',
+    message:
+      'El VIN debe contener solo caracteres alfanuméricos válidos (sin I, O, Q)',
   })
   vin?: string;
 

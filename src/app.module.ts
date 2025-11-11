@@ -18,7 +18,6 @@ import { RutasModule } from './modules/Rutas/rutas.module';
 import { ConductoresModule } from './modules/conductores/conductores.module';
 import { TurnosModule } from './modules/turnos/turnos.module';
 
-
 /**
  * Módulo raíz de la aplicación
  * Importa todos los módulos de funcionalidad
@@ -28,7 +27,6 @@ import { TurnosModule } from './modules/turnos/turnos.module';
     // Módulo global de base de datos
     DatabaseModule,
     PrismaModule,
-
 
     // Módulos de funcionalidad
     AuthModule,
