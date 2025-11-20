@@ -1,0 +1,68 @@
+# ==========================================
+# 🚌 EnrutApp Backend - .dockerignore
+# ==========================================
+# Archivos y carpetas a ignorar al construir la imagen Docker
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+*.log
+logs/
+server.log
+server-output.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+coverage/
+.nyc_output/
+test/
+*.spec.ts
+*.test.ts
+
+# Documentation
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Uploads (se crean en el contenedor)
+uploads/*
+
+# Misc
+*.md
+LICENSE
+.prettierrc
+.eslintrc.js
+eslint.config.mjs
