@@ -63,6 +63,11 @@ export class RutasController {
     return this.rutasService.findAllOrigenes();
   }
 
+  @Get('origen/por-ubicacion/:id')
+  findOrigenByUbicacion(@Param('id') id: string) {
+    return this.rutasService.findOrigenByUbicacion(id);
+  }
+
   // ===== DESTINO =====
   @Post('destino')
   createDestino(@Body() body: any) {
@@ -72,5 +77,10 @@ export class RutasController {
   @Get('destino')
   findAllDestinos() {
     return this.rutasService.findAllDestinos();
+  }
+
+  @Get('destino/por-ubicacion/:id')
+  findDestinoByUbicacion(@Param('id') id: string) {
+    return this.rutasService.findDestinoByUbicacion(id);
   }
 }

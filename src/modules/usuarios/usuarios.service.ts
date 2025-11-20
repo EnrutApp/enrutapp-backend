@@ -4,6 +4,7 @@ import { hash } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import * as nodemailer from 'nodemailer';
 
 /**
  * Servicio de Usuarios
@@ -11,7 +12,103 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
  */
 @Injectable()
 export class UsuariosService {
+  private transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.example.com',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER || 'user@example.com',
+      pass: process.env.SMTP_PASS || 'password',
+    },
+  });
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Envía correo con las credenciales al nuevo usuario
+   */
+  private async sendWelcomeEmail(
+    email: string,
+    nombre: string,
+    password?: string, // Opcional: si se proporciona, se incluyen las credenciales
+  ): Promise<void> {
+    try {
+      const conCredenciales = !!password;
+
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM || 'no-reply@enrutapp.com',
+        to: email,
+        subject: conCredenciales
+          ? '¡Bienvenido a EnrutApp! - Credenciales de acceso'
+          : '¡Bienvenido a EnrutApp!',
+        html: conCredenciales
+          ? `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">¡Bienvenido a EnrutApp!</h2>
+            <p>Hola <strong>${nombre}</strong>,</p>
+            <p>Tu cuenta ha sido creada exitosamente. A continuación encontrarás tus credenciales de acceso:</p>
+            
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>Correo:</strong> ${email}</p>
+              <p style="margin: 5px 0;"><strong>Contraseña:</strong> ${password}</p>
+            </div>
+            
+            <p style="color: #ef4444;"><strong>⚠️ Importante:</strong> Por tu seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.</p>
+            
+            <p>Puedes acceder al sistema en: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="color: #2563eb;">EnrutApp</a></p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 12px;">Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.</p>
+          </div>
+        `
+          : `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">¡Bienvenido a EnrutApp!</h2>
+            <p>Hola <strong>${nombre}</strong>,</p>
+            <p>Tu cuenta ha sido creada exitosamente en EnrutApp.</p>
+            
+            <p>Ahora puedes acceder al sistema con las credenciales que configuraste durante el registro.</p>
+            
+            <p>Puedes acceder al sistema en: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="color: #2563eb;">EnrutApp</a></p>
+            
+            <p>Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.</p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 12px;">Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.</p>
+          </div>
+        `,
+        text: conCredenciales
+          ? `
+¡Bienvenido a EnrutApp!
+
+Hola ${nombre},
+
+Tu cuenta ha sido creada exitosamente. A continuación encontrarás tus credenciales de acceso:
+
+Correo: ${email}
+Contraseña: ${password}
+
+⚠️ Importante: Por tu seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.
+
+Puedes acceder al sistema en: ${process.env.FRONTEND_URL || 'http://localhost:5173'}
+        `
+          : `
+¡Bienvenido a EnrutApp!
+
+Hola ${nombre},
+
+Tu cuenta ha sido creada exitosamente en EnrutApp.
+
+Ahora puedes acceder al sistema con las credenciales que configuraste durante el registro.
+
+Puedes acceder al sistema en: ${process.env.FRONTEND_URL || 'http://localhost:5173'}
+        `,
+      });
+    } catch (error) {
+      console.error('Error al enviar correo de bienvenida:', error);
+      // No lanzamos error para no bloquear la creación del usuario
+    }
+  }
 
   /**
    * Verifica si un correo ya existe en la base de datos
@@ -156,6 +253,9 @@ export class UsuariosService {
         createUsuarioDto.numDocumento,
       ).trim();
 
+      // Guardar contraseña en texto plano temporalmente para enviar por correo
+      const plainPassword = createUsuarioDto.contrasena;
+
       // Hashear contraseña
       const hashedPassword = await hash(createUsuarioDto.contrasena, 10);
 
@@ -184,10 +284,20 @@ export class UsuariosService {
         },
       });
 
+      // Enviar correo con las credenciales de forma asíncrona
+      this.sendWelcomeEmail(
+        correoNormalizado,
+        createUsuarioDto.nombre,
+        plainPassword,
+      ).catch((error) => {
+        console.error('Error al enviar correo de bienvenida:', error);
+      });
+
       return {
         success: true,
         data: nuevoUsuario,
-        message: 'Usuario creado exitosamente',
+        message:
+          'Usuario creado exitosamente. Se ha enviado un correo con las credenciales.',
       };
     } catch (error) {
       if (error instanceof HttpException) {

@@ -17,6 +17,7 @@ import { PrismaModule } from './database/prisma.module';
 import { RutasModule } from './modules/Rutas/rutas.module';
 import { ConductoresModule } from './modules/conductores/conductores.module';
 import { TurnosModule } from './modules/turnos/turnos.module';
+import { CategoriasLicenciaModule } from './modules/categorias-licencia/categorias-licencia.module';
 
 /**
  * Módulo raíz de la aplicación
@@ -41,6 +42,7 @@ import { TurnosModule } from './modules/turnos/turnos.module';
     ConductoresModule,
     RutasModule,
     TurnosModule,
+    CategoriasLicenciaModule,
   ],
   controllers: [AppController],
   providers: [
