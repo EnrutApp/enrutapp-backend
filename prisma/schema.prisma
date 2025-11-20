@@ -9,216 +9,243 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Usuarios {
-  idUsuario             String       @id @db.VarChar(36)
-  idRol                 String       @db.VarChar(36)
-  foto                  String?
-  tipoDoc               String       @db.VarChar(36)
-  numDocumento          String       @unique @db.VarChar(20)
-  nombre                String       @db.VarChar(100)
-  telefono              String       @db.VarChar(20)
-  correo                String       @unique @db.VarChar(100)
-  contrasena            String       @db.VarChar(255)
-  direccion             String       @db.VarChar(255)
-  idCiudad              Int
-  estado                Boolean
-  resetPasswordCode     String?      @db.VarChar(100)
-  resetPasswordExpires  DateTime?
+  idUsuario            String    @id @db.VarChar(36)
+  idRol                String    @db.VarChar(36)
+  foto                 String?
+  tipoDoc              String    @db.VarChar(36)
+  numDocumento         String    @unique @db.VarChar(20)
+  nombre               String    @db.VarChar(100)
+  telefono             String    @db.VarChar(20)
+  correo               String    @unique @db.VarChar(100)
+  contrasena           String    @db.VarChar(255)
+  direccion            String    @db.VarChar(255)
+  idCiudad             Int
+  estado               Boolean
+  resetPasswordCode    String?   @db.VarChar(100)
+  resetPasswordExpires DateTime?
 
   // Relaciones
-  rol                   Roles        @relation(fields: [idRol], references: [idRol])
-  tipoDocumento         TiposDoc     @relation(fields: [tipoDoc], references: [idTipoDoc])
-  ciudad                Ciudades     @relation(fields: [idCiudad], references: [idCiudad])
+  rol              Roles        @relation(fields: [idRol], references: [idRol])
+  tipoDocumento    TiposDoc     @relation(fields: [tipoDoc], references: [idTipoDoc])
+  ciudad           Ciudades     @relation(fields: [idCiudad], references: [idCiudad])
+  conductor        Conductores?
+  vehiculosPropios Vehiculos[]  @relation("VehiculoPropietario")
 
   @@map("Usuarios")
 }
 
 model Ciudades {
-  idCiudad      Int        @id @default(autoincrement())
-  nombreCiudad  String     @unique @db.VarChar(100)
+  idCiudad     Int    @id @default(autoincrement())
+  nombreCiudad String @unique @db.VarChar(100)
 
   // Relaciones
-  usuarios      Usuarios[]
+  usuarios Usuarios[]
 
   @@map("Ciudades")
 }
 
 model Roles {
-  idRol        String      @id @db.VarChar(36)
-  nombreRol    String      @unique @db.VarChar(50)
-  descripcion  String?     @db.Text
-  estado       Boolean
+  idRol       String  @id @db.VarChar(36)
+  nombreRol   String  @unique @db.VarChar(50)
+  descripcion String? @db.Text
+  estado      Boolean
 
   // Relaciones
-  usuarios     Usuarios[]
+  usuarios Usuarios[]
 
   @@map("Roles")
 }
 
 model TiposDoc {
-  idTipoDoc        String      @id @db.VarChar(36)
-  nombreTipoDoc    String      @unique @db.VarChar(50)
+  idTipoDoc     String @id @db.VarChar(36)
+  nombreTipoDoc String @unique @db.VarChar(50)
 
   // Relaciones
-  usuarios         Usuarios[]
+  usuarios Usuarios[]
 
   @@map("TiposDoc")
 }
 
 model TiposVehiculo {
-  idTipoVehiculo        String      @id @db.VarChar(36)
-  nombreTipoVehiculo    String      @unique @db.VarChar(50)
-  descripcion           String?     @db.Text
-  estado                Boolean     @default(true)
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  idTipoVehiculo     String   @id @db.VarChar(36)
+  nombreTipoVehiculo String   @unique @db.VarChar(50)
+  descripcion        String?  @db.Text
+  estado             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relaciones
-  vehiculos             Vehiculos[]
+  vehiculos Vehiculos[]
 
   @@map("TiposVehiculo")
 }
 
 model MarcasVehiculos {
-  idMarcaVehiculo  String      @id @db.VarChar(36)
-  nombreMarca      String      @unique @db.VarChar(50)
-  pais             String?     @db.VarChar(50)
-  estado           Boolean     @default(true)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  idMarcaVehiculo String   @id @db.VarChar(36)
+  nombreMarca     String   @unique @db.VarChar(50)
+  pais            String?  @db.VarChar(50)
+  estado          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relaciones
-  vehiculos        Vehiculos[]
+  vehiculos Vehiculos[]
 
   @@map("MarcasVehiculos")
 }
 
 model Vehiculos {
-  idVehiculo                  String           @id @db.VarChar(36)
-  idTipoVehiculo              String           @db.VarChar(36)
-  idMarcaVehiculo             String           @db.VarChar(36)
-  placa                       String           @unique @db.VarChar(10)
-  linea                       String           @db.VarChar(50)
-  modelo                      Int
-  color                       String           @db.VarChar(30)
-  vin                         String?          @unique @db.VarChar(17)
-  fotoUrl                     String           @db.VarChar(255)
-  capacidadPasajeros          Int
-  capacidadCarga              Decimal?         @db.Decimal(10, 2)
-  soatVencimiento             DateTime?
-  tecnomecanicaVencimiento    DateTime?
-  seguroVencimiento           DateTime?
-  estado                      Boolean          @default(true)
-  createdAt                   DateTime         @default(now())
-  updatedAt                   DateTime         @updatedAt
+  idVehiculo               String    @id @db.VarChar(36)
+  idTipoVehiculo           String    @db.VarChar(36)
+  idMarcaVehiculo          String    @db.VarChar(36)
+  idPropietario            String    @db.VarChar(36)
+  idConductorAsignado      String?   @db.VarChar(36)
+  placa                    String    @unique @db.VarChar(10)
+  linea                    String    @db.VarChar(50)
+  modelo                   Int
+  color                    String    @db.VarChar(30)
+  vin                      String?   @unique @db.VarChar(17)
+  fotoUrl                  String    @db.VarChar(255)
+  capacidadPasajeros       Int
+  capacidadCarga           Decimal?  @db.Decimal(10, 2)
+  soatVencimiento          DateTime?
+  tecnomecanicaVencimiento DateTime?
+  seguroVencimiento        DateTime?
+  estado                   Boolean   @default(true)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   // Relaciones
-  tipoVehiculo                TiposVehiculo    @relation(fields: [idTipoVehiculo], references: [idTipoVehiculo])
-  marcaVehiculo               MarcasVehiculos  @relation(fields: [idMarcaVehiculo], references: [idMarcaVehiculo])
-  turnos                      Turnos[]
+  tipoVehiculo      TiposVehiculo   @relation(fields: [idTipoVehiculo], references: [idTipoVehiculo])
+  marcaVehiculo     MarcasVehiculos @relation(fields: [idMarcaVehiculo], references: [idMarcaVehiculo])
+  propietario       Usuarios        @relation("VehiculoPropietario", fields: [idPropietario], references: [idUsuario])
+  conductorAsignado Conductores?    @relation("VehiculoConductorAsignado", fields: [idConductorAsignado], references: [idConductor])
+  turnos            Turnos[]
 
   @@index([idTipoVehiculo])
   @@index([idMarcaVehiculo])
+  @@index([idPropietario])
+  @@index([idConductorAsignado])
   @@index([placa])
   @@map("Vehiculos")
 }
 
 model Ubicaciones {
-  id         Int       @id @default(autoincrement())
-  nombre     String    @db.VarChar(100)
-  direccion  String    @db.VarChar(255)
-  estado     Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        Int      @id @default(autoincrement())
+  nombre    String   @db.VarChar(100)
+  direccion String   @db.VarChar(255)
+  latitud   Decimal? @db.Decimal(10, 8)
+  longitud  Decimal? @db.Decimal(11, 8)
+  estado    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("Ubicaciones")
 }
 
 model Ubicacion {
-  idUbicacion       String     @id @default(uuid()) @db.VarChar(36)
-  nombreUbicacion   String     @db.VarChar(100)
-  direccion         String     @db.VarChar(255)
-  latitud           Decimal?   @db.Decimal(10, 8)
-  longitud          Decimal?   @db.Decimal(11, 8)
+  idUbicacion     String   @id @default(uuid()) @db.VarChar(36)
+  nombreUbicacion String   @db.VarChar(100)
+  direccion       String   @db.VarChar(255)
+  latitud         Decimal? @db.Decimal(10, 8)
+  longitud        Decimal? @db.Decimal(11, 8)
 
   // Relaciones
-  origenes          Origen[]
-  destinos          Destino[]
+  origenes Origen[]
+  destinos Destino[]
 }
 
 model Origen {
-  idOrigen     String    @id @default(uuid()) @db.VarChar(36)
-  idUbicacion  String    @db.VarChar(36)
-  descripcion  String?   @db.VarChar(255)
+  idOrigen    String  @id @default(uuid()) @db.VarChar(36)
+  idUbicacion String  @db.VarChar(36)
+  descripcion String? @db.VarChar(255)
 
   // Relaciones
-  ubicacion    Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
-  rutasOrigen  Ruta[]    @relation("RutasDesdeOrigen")
+  ubicacion   Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
+  rutasOrigen Ruta[]    @relation("RutasDesdeOrigen")
 }
 
 model Destino {
-  idDestino    String    @id @default(uuid()) @db.VarChar(36)
-  idUbicacion  String    @db.VarChar(36)
-  descripcion  String?   @db.VarChar(255)
+  idDestino   String  @id @default(uuid()) @db.VarChar(36)
+  idUbicacion String  @db.VarChar(36)
+  descripcion String? @db.VarChar(255)
 
   // Relaciones
-  ubicacion     Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
-  rutasDestino  Ruta[]    @relation("RutasHaciaDestino")
+  ubicacion    Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
+  rutasDestino Ruta[]    @relation("RutasHaciaDestino")
 }
 
 model Ruta {
-  idRuta          String    @id @default(uuid()) @db.VarChar(36)
-  idOrigen        String    @db.VarChar(36)
-  idDestino       String    @db.VarChar(36)
-  distancia       Decimal?  @db.Decimal(10, 2)
-  observaciones   String?   @db.VarChar(100)
-  tiempoEstimado  String?   @db.VarChar(10)
-  precioBase      Decimal?  @db.Decimal(10, 2)
-  estado          String?   @db.VarChar(50)
+  idRuta         String   @id @default(uuid()) @db.VarChar(36)
+  idOrigen       String   @db.VarChar(36)
+  idDestino      String   @db.VarChar(36)
+  distancia      Decimal? @db.Decimal(10, 2)
+  observaciones  String?  @db.VarChar(100)
+  tiempoEstimado String?  @db.VarChar(10)
+  precioBase     Decimal? @db.Decimal(10, 2)
+  estado         String?  @db.VarChar(50)
 
   // Relaciones
-  origen          Origen    @relation("RutasDesdeOrigen", fields: [idOrigen], references: [idOrigen])
-  destino         Destino   @relation("RutasHaciaDestino", fields: [idDestino], references: [idDestino])
+  origen  Origen  @relation("RutasDesdeOrigen", fields: [idOrigen], references: [idOrigen])
+  destino Destino @relation("RutasHaciaDestino", fields: [idDestino], references: [idDestino])
+}
+
+model CategoriasLicencia {
+  idCategoriaLicencia String   @id @default(uuid()) @db.VarChar(36)
+  nombreCategoria     String   @unique @db.VarChar(10) // A1, A2, B1, B2, B3, C1, C2, C3
+  descripcion         String?  @db.VarChar(255)
+  estado              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relaciones
+  conductores Conductores[]
+
+  @@map("CategoriasLicencia")
 }
 
 model Conductores {
-  idConductor  String     @id @default(uuid()) @db.VarChar(36)
-  nombre       String     @db.VarChar(100)
-  apellido     String     @db.VarChar(100)
-  cedula       String     @unique @db.VarChar(20)
-  telefono     String     @db.VarChar(20)
-  correo       String?    @unique @db.VarChar(100)
-  licencia     String     @unique @db.VarChar(50)
-  fotoUrl      String?    @db.VarChar(255)
-  estado       Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  idConductor              String   @id @default(uuid()) @db.VarChar(36)
+  idUsuario                String   @db.VarChar(36)
+  numeroLicencia           String   @unique @db.VarChar(50)
+  idCategoriaLicencia      String   @db.VarChar(36)
+  fechaVencimientoLicencia DateTime
+  observaciones            String?  @db.Text
+  estado                   Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   // Relaciones
-  turnos       Turnos[]
+  usuario            Usuarios           @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
+  categoriaLicencia  CategoriasLicencia @relation(fields: [idCategoriaLicencia], references: [idCategoriaLicencia])
+  turnos             Turnos[]
+  vehiculosAsignados Vehiculos[]        @relation("VehiculoConductorAsignado")
 
-  @@index([cedula])
-  @@index([licencia])
+  @@unique([idUsuario])
+  @@index([idUsuario])
+  @@index([numeroLicencia])
+  @@index([idCategoriaLicencia])
   @@map("Conductores")
 }
 
 model Turnos {
-  idTurno       String      @id @default(uuid()) @db.VarChar(36)
-  idConductor   String      @db.VarChar(36)
-  idVehiculo    String      @db.VarChar(36)
-  fecha         DateTime
-  hora          String      @db.VarChar(10)
-  estado        String      @default("Programado") @db.VarChar(20)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  idTurno     String   @id @default(uuid()) @db.VarChar(36)
+  idConductor String   @db.VarChar(36)
+  idVehiculo  String   @db.VarChar(36)
+  fecha       DateTime
+  hora        String   @db.VarChar(10)
+  estado      String   @default("Programado") @db.VarChar(20)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relaciones
-  conductor     Conductores @relation(fields: [idConductor], references: [idConductor], onDelete: Cascade)
-  vehiculo      Vehiculos   @relation(fields: [idVehiculo], references: [idVehiculo], onDelete: Cascade)
+  conductor Conductores @relation(fields: [idConductor], references: [idConductor], onDelete: Cascade)
+  vehiculo  Vehiculos   @relation(fields: [idVehiculo], references: [idVehiculo], onDelete: Cascade)
 
   @@index([idConductor])
   @@index([idVehiculo])
