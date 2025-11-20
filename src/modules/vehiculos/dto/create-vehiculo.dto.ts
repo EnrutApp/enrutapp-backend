@@ -55,6 +55,27 @@ export class CreateVehiculoDto {
   idMarcaVehiculo!: string;
 
   @ApiProperty({
+    description: 'ID del propietario del vehículo (Usuario)',
+    example: '550e8400-e29b-41d4-a716-446655440030',
+    type: String,
+    format: 'uuid',
+  })
+  @IsUUID('all', { message: 'El ID del propietario debe ser un UUID válido' })
+  @IsNotEmpty({ message: 'El propietario del vehículo es obligatorio' })
+  idPropietario!: string;
+
+  @ApiProperty({
+    description: 'ID del conductor asignado al vehículo (opcional)',
+    example: '550e8400-e29b-41d4-a716-446655440040',
+    required: false,
+    type: String,
+    format: 'uuid',
+  })
+  @IsUUID('all', { message: 'El ID del conductor debe ser un UUID válido' })
+  @IsOptional()
+  idConductorAsignado?: string;
+
+  @ApiProperty({
     description: 'Placa del vehículo (hasta 10 caracteres)',
     example: 'ABC123',
     type: String,

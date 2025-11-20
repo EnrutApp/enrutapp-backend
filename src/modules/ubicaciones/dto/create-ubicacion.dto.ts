@@ -20,4 +20,10 @@ export class CreateUbicacionDto {
   @IsOptional()
   @IsBoolean({ message: 'El estado debe ser verdadero o falso' })
   estado?: boolean;
+
+  @IsOptional()
+  latitud?: number;
+
+  @IsOptional()
+  longitud?: number;
 }

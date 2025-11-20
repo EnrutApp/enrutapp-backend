@@ -151,6 +151,8 @@ export class VehiculosService {
         idVehiculo: string;
         idTipoVehiculo: string;
         idMarcaVehiculo: string;
+        idPropietario: string;
+        idConductorAsignado: string | null;
         placa: string;
         linea: string;
         modelo: number;
@@ -169,6 +171,8 @@ export class VehiculosService {
         idVehiculo: createVehiculoDto.idVehiculo || uuidv4(),
         idTipoVehiculo: createVehiculoDto.idTipoVehiculo,
         idMarcaVehiculo: createVehiculoDto.idMarcaVehiculo,
+        idPropietario: createVehiculoDto.idPropietario,
+        idConductorAsignado: createVehiculoDto.idConductorAsignado || null,
         placa: createVehiculoDto.placa.toUpperCase(),
         linea: createVehiculoDto.linea,
         modelo: createVehiculoDto.modelo,

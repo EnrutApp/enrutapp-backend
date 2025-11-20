@@ -6,10 +6,9 @@ import {
   Param,
   Put,
   Delete,
-  UploadedFile,
-  UseInterceptors,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -20,10 +19,14 @@ import {
   ApiNotFoundResponse,
   ApiUnauthorizedResponse,
   ApiConflictResponse,
-  ApiConsumes,
 } from '@nestjs/swagger';
 import { ConductoresService } from './conductores.service';
-import { CreateConductorDto, UpdateConductorDto } from './dto/index';
+import {
+  CreateConductorDto,
+  UpdateConductorDto,
+  CompletarPerfilConductorDto,
+} from './dto/index';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 /**
  * Controlador de Conductores
@@ -41,29 +44,11 @@ export class ConductoresController {
   @ApiOperation({
     summary: 'Listar todos los conductores',
     description:
-      'Obtiene la lista completa de conductores registrados en el sistema',
+      'Obtiene la lista completa de conductores registrados en el sistema con información del usuario asociado',
   })
   @ApiResponse({
     status: 200,
     description: 'Lista de conductores obtenida exitosamente',
-    schema: {
-      example: {
-        success: true,
-        data: [
-          {
-            idConductor: '550e8400-e29b-41d4-a716-446655440001',
-            nombre: 'Juan',
-            apellido: 'Pérez',
-            cedula: '1234567890',
-            telefono: '3001234567',
-            correo: 'juan@example.com',
-            licencia: 'CC123456',
-            estado: true,
-          },
-        ],
-        message: 'Conductores obtenidos exitosamente',
-      },
-    },
   })
   async findAll() {
     return this.conductoresService.findAll();
@@ -98,15 +83,114 @@ export class ConductoresController {
   }
 
   /**
+   * Verificar estado de licencia de un conductor
+   */
+  @ApiBearerAuth('JWT-auth')
+  @Get(':id/verificar-licencia')
+  @ApiOperation({
+    summary: 'Verificar estado de licencia',
+    description:
+      'Verifica el estado de la licencia de conducción (vigente, próxima a vencer o vencida)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del conductor (UUID)',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado de licencia verificado',
+  })
+  @ApiNotFoundResponse({
+    description: 'Conductor no encontrado',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token no válido o expirado',
+  })
+  async verificarLicencia(@Param('id') id: string) {
+    return this.conductoresService.verificarLicencia(id);
+  }
+
+  /**
+   * Verificar si el perfil de conductor está completo
+   */
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @Get('verificar-perfil/me')
+  @ApiOperation({
+    summary: 'Verificar perfil de conductor del usuario autenticado',
+    description:
+      'Verifica si el usuario autenticado con rol Conductor tiene su perfil completo en el módulo de conductores',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado del perfil verificado',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          esConductor: true,
+          completado: false,
+          conductor: null,
+        },
+        message: 'El conductor debe completar su perfil',
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token no válido o expirado',
+  })
+  async verificarPerfilCompleto(@Request() req: any) {
+    // req.user contiene el usuario completo retornado por validateUser
+    const idUsuario = req.user.idUsuario;
+    return this.conductoresService.verificarPerfilCompleto(idUsuario);
+  }
+
+  /**
+   * Completar perfil de conductor (self-service)
+   */
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @Post('completar-perfil/me')
+  @ApiOperation({
+    summary: 'Completar perfil de conductor',
+    description:
+      'Permite que un usuario con rol Conductor complete su propio perfil con información de su licencia',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Perfil de conductor completado exitosamente',
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos inválidos o usuario sin rol de conductor',
+  })
+  @ApiConflictResponse({
+    description: 'El perfil ya está completo',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token no válido o expirado',
+  })
+  async completarPerfil(
+    @Request() req: any,
+    @Body() completarPerfilDto: CompletarPerfilConductorDto,
+  ) {
+    // req.user contiene el usuario completo retornado por validateUser
+    const idUsuario = req.user.idUsuario;
+    return this.conductoresService.completarPerfil(
+      idUsuario,
+      completarPerfilDto,
+    );
+  }
+
+  /**
    * Crear un nuevo conductor
    */
   @ApiBearerAuth('JWT-auth')
   @Post()
-  @UseInterceptors(FileInterceptor('foto'))
-  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Crear nuevo conductor',
-    description: 'Registra un nuevo conductor en el sistema',
+    description:
+      'Registra un nuevo conductor en el sistema asociado a un usuario con rol de conductor',
   })
   @ApiResponse({
     status: 201,
@@ -115,13 +199,10 @@ export class ConductoresController {
   @ApiBadRequestResponse({ description: 'Datos inválidos' })
   @ApiUnauthorizedResponse({ description: 'Token no válido o expirado' })
   @ApiConflictResponse({
-    description: 'La cédula o licencia del conductor ya existe',
+    description: 'El conductor o el número de licencia ya existe',
   })
-  async create(
-    @Body() createConductorDto: CreateConductorDto,
-    @UploadedFile() file?: Express.Multer.File,
-  ) {
-    return this.conductoresService.create(createConductorDto, file);
+  async create(@Body() createConductorDto: CreateConductorDto) {
+    return this.conductoresService.create(createConductorDto);
   }
 
   /**
@@ -149,7 +230,7 @@ export class ConductoresController {
     description: 'Datos inválidos',
   })
   @ApiConflictResponse({
-    description: 'La cédula o licencia ya está en uso',
+    description: 'El número de licencia ya está en uso',
   })
   @ApiUnauthorizedResponse({
     description: 'Token no válido o expirado',
@@ -187,34 +268,5 @@ export class ConductoresController {
   })
   async remove(@Param('id') id: string) {
     return this.conductoresService.remove(id);
-  }
-
-  /**
-   * Subir/actualizar la foto de un conductor
-   */
-  @ApiBearerAuth('JWT-auth')
-  @Post(':id/foto')
-  @UseInterceptors(FileInterceptor('foto'))
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({
-    summary: 'Subir o actualizar foto del conductor',
-    description:
-      'Sube un archivo de imagen (jpg, png, webp) y actualiza el campo fotoUrl del conductor',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID del conductor (UUID)',
-    example: '550e8400-e29b-41d4-a716-446655440001',
-  })
-  @ApiResponse({ status: 200, description: 'Foto actualizada correctamente' })
-  @ApiBadRequestResponse({
-    description: 'Archivo inválido o datos incorrectos',
-  })
-  @ApiNotFoundResponse({ description: 'Conductor no encontrado' })
-  async uploadFoto(
-    @Param('id') id: string,
-    @UploadedFile() file?: Express.Multer.File,
-  ) {
-    return this.conductoresService.actualizarFoto(id, file);
   }
 }
