@@ -81,7 +81,8 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT ?? 3000;
-  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+  // Escuchar en 0.0.0.0 para permitir conexiones desde dispositivos móviles en la red local
+  const host = '0.0.0.0';
   await app.listen(port, host);
 
   // Mensajes informativos en consola con colores
@@ -112,6 +113,7 @@ async function bootstrap() {
     chalk.green('   ✓ CORS:            Habilitado (todos los orígenes)'),
   );
   console.log(chalk.green('   ✓ Prefijo API:     /api'));
+  console.log(chalk.green('   ✓ WebSocket:       Socket.io /tracking'));
 
   console.log('\n');
   console.log(chalk.bold('📋 Endpoints Principales:'));

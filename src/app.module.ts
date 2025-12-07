@@ -18,6 +18,7 @@ import { RutasModule } from './modules/Rutas/rutas.module';
 import { ConductoresModule } from './modules/conductores/conductores.module';
 import { TurnosModule } from './modules/turnos/turnos.module';
 import { CategoriasLicenciaModule } from './modules/categorias-licencia/categorias-licencia.module';
+import { TrackingModule } from './modules/tracking/tracking.module';
 
 /**
  * Módulo raíz de la aplicación
@@ -43,6 +44,9 @@ import { CategoriasLicenciaModule } from './modules/categorias-licencia/categori
     RutasModule,
     TurnosModule,
     CategoriasLicenciaModule,
+
+    // Módulo de tracking en tiempo real (WebSockets)
+    TrackingModule,
   ],
   controllers: [AppController],
   providers: [
