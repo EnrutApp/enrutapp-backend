@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -35,6 +29,9 @@ model Usuarios {
   ciudad           Ciudades     @relation(fields: [idCiudad], references: [idCiudad])
   conductor        Conductores?
   vehiculosPropios Vehiculos[]  @relation("VehiculoPropietario")
+
+  conductores      Conductores[]
+  reservasPrivadas ReservasPrivadas[]
 
   @@map("Usuarios")
 }
@@ -127,6 +124,13 @@ model Vehiculos {
   conductorAsignado Conductores?    @relation("VehiculoConductorAsignado", fields: [idConductorAsignado], references: [idConductor])
   turnos            Turnos[]
 
+<<<<<<< HEAD
+  reservasPrivadas ReservasPrivadas[]
+
+  @@map("Vehiculos")
+}
+
+=======
   @@index([idTipoVehiculo])
   @@index([idMarcaVehiculo])
   @@index([idPropietario])
@@ -148,6 +152,7 @@ model Ubicaciones {
   @@map("Ubicaciones")
 }
 
+>>>>>>> d490ac7d89576ca24f0665c24fe76b4ab8e51d74
 model Ubicacion {
   idUbicacion     String   @id @default(uuid()) @db.VarChar(36)
   nombreUbicacion String   @db.VarChar(100)
@@ -155,9 +160,10 @@ model Ubicacion {
   latitud         Decimal? @db.Decimal(10, 8)
   longitud        Decimal? @db.Decimal(11, 8)
 
-  // Relaciones
   origenes Origen[]
   destinos Destino[]
+
+  @@map("Ubicacion")
 }
 
 model Origen {
@@ -165,9 +171,10 @@ model Origen {
   idUbicacion String  @db.VarChar(36)
   descripcion String? @db.VarChar(255)
 
-  // Relaciones
   ubicacion   Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
   rutasOrigen Ruta[]    @relation("RutasDesdeOrigen")
+
+  @@map("Origen")
 }
 
 model Destino {
@@ -175,9 +182,10 @@ model Destino {
   idUbicacion String  @db.VarChar(36)
   descripcion String? @db.VarChar(255)
 
-  // Relaciones
   ubicacion    Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
   rutasDestino Ruta[]    @relation("RutasHaciaDestino")
+
+  @@map("Destino")
 }
 
 model Ruta {
@@ -190,11 +198,79 @@ model Ruta {
   precioBase     Decimal? @db.Decimal(10, 2)
   estado         String?  @db.VarChar(50)
 
-  // Relaciones
   origen  Origen  @relation("RutasDesdeOrigen", fields: [idOrigen], references: [idOrigen])
   destino Destino @relation("RutasHaciaDestino", fields: [idDestino], references: [idDestino])
+
+  reservasPrivadas ReservasPrivadas[]
+
+  @@map("Ruta")
 }
 
+<<<<<<< HEAD
+model MetodoPago {
+  idMetodoPago String @id @db.VarChar(36)
+  nombreMetodo String @db.VarChar(50)
+
+  reservasPrivadas ReservasPrivadas[]
+
+  @@map("MetodoPago")
+}
+
+model Conductores {
+  idConductor              String   @id @db.VarChar(36)
+  idUsuario                String   @db.VarChar(36)
+  licencia                 String   @db.VarChar(50)
+  categoriaLicencia        String   @db.VarChar(20)
+  fechaVencimientoLicencia DateTime
+  idArl                    String?  @db.VarChar(36)
+  idEps                    String?  @db.VarChar(36)
+  fondoPensiones           String?  @db.VarChar(50)
+  estado                   Boolean
+
+  usuario          Usuarios           @relation(fields: [idUsuario], references: [idUsuario])
+  reservasPrivadas ReservasPrivadas[]
+
+  @@map("Conductores")
+}
+
+model ReservasPrivadas {
+  idReservaPrivada String   @id @default(uuid()) @db.VarChar(36)
+  idUsuario        String   @db.VarChar(36)
+  idVehiculo       String?  @db.VarChar(36)
+  idConductor      String?  @db.VarChar(36)
+  idRuta           String   @db.VarChar(36)
+  fecha            DateTime
+  horaSalida       String   @db.VarChar(10)
+  cantidadPersonas Int
+  precioTotal      Decimal? @db.Decimal(10, 2)
+  idMetodoPago     String   @db.VarChar(36)
+  estadoReserva    String   @db.VarChar(50)
+  fechaReserva     DateTime
+
+  usuario    Usuarios     @relation(fields: [idUsuario], references: [idUsuario])
+  vehiculo   Vehiculos?   @relation(fields: [idVehiculo], references: [idVehiculo])
+  conductor  Conductores? @relation(fields: [idConductor], references: [idConductor])
+  ruta       Ruta         @relation(fields: [idRuta], references: [idRuta])
+  metodoPago MetodoPago   @relation(fields: [idMetodoPago], references: [idMetodoPago])
+
+  detalles DetalleReservaPrivadaPasajero[]
+
+  @@map("ReservasPrivadas")
+}
+
+model DetalleReservaPrivadaPasajero {
+  idDetalle        String @id @default(uuid()) @db.VarChar(36)
+  idReservaPrivada String @db.VarChar(36)
+  nombrePasajero   String @db.VarChar(100)
+  tipoDoc          String @db.VarChar(36)
+  numDocPasajero   String @db.VarChar(20)
+  edadPasajero     Int
+
+  reserva ReservasPrivadas @relation(fields: [idReservaPrivada], references: [idReservaPrivada])
+
+  @@map("DetalleReservaPrivadaPasajero")
+}
+=======
 model CategoriasLicencia {
   idCategoriaLicencia String   @id @default(uuid()) @db.VarChar(36)
   nombreCategoria     String   @unique @db.VarChar(10) // A1, A2, B1, B2, B3, C1, C2, C3
@@ -253,3 +329,4 @@ model Turnos {
   @@index([estado])
   @@map("Turnos")
 }
+>>>>>>> d490ac7d89576ca24f0665c24fe76b4ab8e51d74

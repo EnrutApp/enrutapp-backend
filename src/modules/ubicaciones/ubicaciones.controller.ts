@@ -8,7 +8,6 @@ import {
   Delete,
   UsePipes,
   ValidationPipe,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { UbicacionesService } from './ubicaciones.service';
 import { CreateUbicacionDto } from './dto/create-ubicacion.dto';
@@ -30,21 +29,21 @@ export class UbicacionesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id') id: string) {
     return this.ubicacionesService.findOne(id);
   }
 
   @Put(':id')
   @UsePipes(new ValidationPipe())
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() updateUbicacionDto: UpdateUbicacionDto,
   ) {
     return this.ubicacionesService.update(id, updateUbicacionDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id') id: string) {
     return this.ubicacionesService.remove(id);
   }
 }

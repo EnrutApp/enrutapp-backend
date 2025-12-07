@@ -1,26 +1,44 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateUbicacionDto } from './dto/create-ubicacion.dto';
 import { UpdateUbicacionDto } from './dto/update-ubicacion.dto';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class UbicacionesService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateUbicacionDto) {
-    return this.prisma.ubicaciones.create({ data });
-  }
+    if (!data.nombreUbicacion || !data.direccion) {
+      throw new BadRequestException('Nombre de ubicación y dirección son obligatorios');
+    }
 
-  async findAll() {
-    return this.prisma.ubicaciones.findMany({
-      where: { estado: true },
-      orderBy: { createdAt: 'desc' },
+    return this.prisma.ubicacion.create({
+      data: {
+        nombreUbicacion: data.nombreUbicacion,
+        direccion: data.direccion,
+        latitud: data.latitud !== undefined ? new Decimal(data.latitud.toString()) : null,
+        longitud: data.longitud !== undefined ? new Decimal(data.longitud.toString()) : null,
+      },
     });
   }
 
-  async findOne(id: number) {
-    const ubicacion = await this.prisma.ubicaciones.findUnique({
-      where: { id },
+  async findAll() {
+    return this.prisma.ubicacion.findMany({
+      include: {
+        origenes: true,
+        destinos: true,
+      },
+    });
+  }
+
+  async findOne(id: string) {
+    const ubicacion = await this.prisma.ubicacion.findUnique({
+      where: { idUbicacion: id },
+      include: {
+        origenes: true,
+        destinos: true,
+      },
     });
 
     if (!ubicacion) {
@@ -30,24 +48,38 @@ export class UbicacionesService {
     return ubicacion;
   }
 
-  async update(id: number, data: UpdateUbicacionDto) {
-    // Verificar que existe
+  async update(id: string, data: UpdateUbicacionDto) {
     await this.findOne(id);
 
-    return this.prisma.ubicaciones.update({
-      where: { id },
-      data,
+    const updateData: any = {};
+    
+    if (data.nombreUbicacion !== undefined) {
+      updateData.nombreUbicacion = data.nombreUbicacion;
+    }
+    
+    if (data.direccion !== undefined) {
+      updateData.direccion = data.direccion;
+    }
+    
+    if (data.latitud !== undefined) {
+      updateData.latitud = new Decimal(data.latitud.toString());
+    }
+    
+    if (data.longitud !== undefined) {
+      updateData.longitud = new Decimal(data.longitud.toString());
+    }
+
+    return this.prisma.ubicacion.update({
+      where: { idUbicacion: id },
+      data: updateData,
     });
   }
 
-  async remove(id: number) {
-    // Verificar que existe
+  async remove(id: string) {
     await this.findOne(id);
 
-    // Soft delete (cambiar estado a false en lugar de eliminar)
-    return this.prisma.ubicaciones.update({
-      where: { id },
-      data: { estado: false },
+    return this.prisma.ubicacion.delete({
+      where: { idUbicacion: id },
     });
   }
 }

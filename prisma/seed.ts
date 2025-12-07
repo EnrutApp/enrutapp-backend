@@ -1,5 +1,5 @@
 // src/prisma/seed.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -233,6 +233,127 @@ async function main() {
       estado: true,
     },
   });
+
+  // 7. Crear Método de Pago
+  console.log('💳 Creando métodos de pago...');
+  const metodoPago = await prisma.metodoPago.upsert({
+    where: { idMetodoPago: 'mp-efectivo-1000-0000-000000000001' },
+    update: { nombreMetodo: 'Efectivo' },
+    create: { idMetodoPago: 'mp-efectivo-1000-0000-000000000001', nombreMetodo: 'Efectivo' },
+  });
+
+  // 8. Crear Ubicaciones (Origen y Destino)
+  console.log('📍 Creando ubicaciones...');
+  const ubicacionOrigen = await prisma.ubicacion.upsert({
+    where: { idUbicacion: 'ub-bogota-centro-000000000001' },
+    update: { nombreUbicacion: 'Bogotá Centro' },
+    create: {
+      idUbicacion: 'ub-bogota-centro-000000000001',
+      nombreUbicacion: 'Bogotá Centro',
+      direccion: 'Centro de Bogotá',
+      latitud: new Prisma.Decimal(4.7110),
+      longitud: new Prisma.Decimal(-74.0055),
+    },
+  });
+
+  const ubicacionDestino = await prisma.ubicacion.upsert({
+    where: { idUbicacion: 'ub-bogota-sur-0000000000001' },
+    update: { nombreUbicacion: 'Bogotá Sur' },
+    create: {
+      idUbicacion: 'ub-bogota-sur-0000000000001',
+      nombreUbicacion: 'Bogotá Sur',
+      direccion: 'Sur de Bogotá',
+      latitud: new Prisma.Decimal(4.5560),
+      longitud: new Prisma.Decimal(-74.1305),
+    },
+  });
+
+  // 9. Crear Origen y Destino
+  console.log('🚩 Creando origen y destino de rutas...');
+  const origen = await prisma.origen.upsert({
+    where: { idOrigen: 'or-bogota-centro-00000000001' },
+    update: { descripcion: 'Terminal Centro Bogotá' },
+    create: {
+      idOrigen: 'or-bogota-centro-00000000001',
+      idUbicacion: ubicacionOrigen.idUbicacion,
+      descripcion: 'Terminal Centro Bogotá',
+    },
+  });
+
+  const destino = await prisma.destino.upsert({
+    where: { idDestino: 'ds-bogota-sur-000000000001' },
+    update: { descripcion: 'Terminal Sur Bogotá' },
+    create: {
+      idDestino: 'ds-bogota-sur-000000000001',
+      idUbicacion: ubicacionDestino.idUbicacion,
+      descripcion: 'Terminal Sur Bogotá',
+    },
+  });
+
+  // 10. Crear Ruta
+  console.log('🛣️  Creando ruta de prueba...');
+  const ruta = await prisma.ruta.upsert({
+    where: { idRuta: 'rt-bogota-centro-sur-000000001' },
+    update: { tiempoEstimado: '45 min' },
+    create: {
+      idRuta: 'rt-bogota-centro-sur-000000001',
+      idOrigen: origen.idOrigen,
+      idDestino: destino.idDestino,
+      distancia: new Prisma.Decimal(15.5),
+      observaciones: 'Ruta principal Centro - Sur',
+      tiempoEstimado: '45 min',
+      precioBase: new Prisma.Decimal(30000),
+      estado: 'Activa',
+    },
+  });
+
+  // 7. Crear Reservas de prueba
+  console.log('📅 Creando reservas de prueba...');
+
+  // Obtener cliente
+  const cliente = await prisma.usuarios.findUnique({ where: { correo: 'client@enrutapp.com' } });
+
+  if (cliente && ruta && metodoPago) {
+    // Crear una reserva de prueba
+    const reserva = await prisma.reservasPrivadas.upsert({
+      where: { idReservaPrivada: 'res-prueba-0000-0000-000000000001' },
+      update: {},
+      create: {
+        idReservaPrivada: 'res-prueba-0000-0000-000000000001',
+        idUsuario: cliente.idUsuario,
+        idRuta: ruta.idRuta,
+        fecha: new Date('2025-12-15'),
+        horaSalida: '08:00',
+        cantidadPersonas: 3,
+        precioTotal: 150000,
+        idMetodoPago: metodoPago.idMetodoPago,
+        estadoReserva: 'Pendiente',
+        fechaReserva: new Date(),
+        idVehiculo: null,
+        idConductor: null,
+      },
+    });
+
+    console.log('✅ Reserva de prueba creada:', reserva.idReservaPrivada);
+
+    // Crear detalles de pasajeros
+    await prisma.detalleReservaPrivadaPasajero.upsert({
+      where: { idDetalle: 'det-pasajero-0001-0000-000000000001' },
+      update: {},
+      create: {
+        idDetalle: 'det-pasajero-0001-0000-000000000001',
+        idReservaPrivada: reserva.idReservaPrivada,
+        nombrePasajero: 'Juan Pérez',
+        tipoDoc: tipoDoc.idTipoDoc,
+        numDocPasajero: '1001001001',
+        edadPasajero: 30,
+      },
+    });
+
+    console.log('✅ Pasajero de prueba agregado');
+  } else {
+    console.warn('⚠️ No se pudo crear reservas de prueba: faltan datos necesarios');
+  }
 
   console.log('✅ Seed completado.');
 }
