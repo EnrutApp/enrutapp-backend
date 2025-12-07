@@ -10,13 +10,18 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Servir archivos estáticos de /uploads
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  // Usar process.cwd() para que funcione tanto en desarrollo como en producción
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
 
-  // Habilitar CORS para todas las conexiones (desarrollo)
+  // Habilitar CORS configurado para producción
+  const corsOrigin = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
+    : true; // En desarrollo permite todos los orígenes
+
   app.enableCors({
-    origin: true, // Permitir todos los orígenes durante desarrollo
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
@@ -76,7 +81,8 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+  await app.listen(port, host);
 
   // Mensajes informativos en consola con colores
   const serverUrl = `http://localhost:${port}`;

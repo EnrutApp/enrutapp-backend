@@ -110,6 +110,13 @@ export class RutasService {
     });
   }
 
+  async findOrigenByUbicacion(idUbicacion: string) {
+    return this.prisma.origen.findFirst({
+      where: { idUbicacion },
+      include: { ubicacion: true },
+    });
+  }
+
   // ===== DESTINO =====
   async createDestino(data: { idUbicacion: string; descripcion?: string }) {
     return this.prisma.destino.create({
@@ -122,6 +129,13 @@ export class RutasService {
     return this.prisma.destino.findMany({
       include: { ubicacion: true },
       orderBy: { ubicacion: { nombreUbicacion: 'asc' } },
+    });
+  }
+
+  async findDestinoByUbicacion(idUbicacion: string) {
+    return this.prisma.destino.findFirst({
+      where: { idUbicacion },
+      include: { ubicacion: true },
     });
   }
 }

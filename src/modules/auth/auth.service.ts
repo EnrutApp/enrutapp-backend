@@ -250,6 +250,14 @@ export class AuthService {
 
       const access_token = await this.jwtService.signAsync(payload);
 
+      // Enviar correo de bienvenida sin credenciales (el usuario ya las conoce)
+      this.sendWelcomeEmailWithoutCredentials(
+        nuevoUsuario.correo,
+        nuevoUsuario.nombre,
+      ).catch((error) => {
+        console.error('Error al enviar correo de bienvenida:', error);
+      });
+
       return {
         success: true,
         data: {
@@ -373,6 +381,51 @@ export class AuthService {
       pass: process.env.SMTP_PASS || 'password',
     },
   });
+
+  /**
+   * Envía correo de bienvenida sin credenciales (para auto-registro)
+   */
+  private async sendWelcomeEmailWithoutCredentials(
+    email: string,
+    nombre: string,
+  ): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM || 'no-reply@enrutapp.com',
+        to: email,
+        subject: '¡Bienvenido a EnrutApp!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">¡Bienvenido a EnrutApp!</h2>
+            <p>Hola <strong>${nombre}</strong>,</p>
+            <p>Tu cuenta ha sido creada exitosamente en EnrutApp.</p>
+            
+            <p>Ahora puedes acceder al sistema con las credenciales que configuraste durante el registro.</p>
+            
+            <p>Puedes acceder al sistema en: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="color: #2563eb;">EnrutApp</a></p>
+            
+            <p>Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.</p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 12px;">Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.</p>
+          </div>
+        `,
+        text: `
+¡Bienvenido a EnrutApp!
+
+Hola ${nombre},
+
+Tu cuenta ha sido creada exitosamente en EnrutApp.
+
+Ahora puedes acceder al sistema con las credenciales que configuraste durante el registro.
+
+Puedes acceder al sistema en: ${process.env.FRONTEND_URL || 'http://localhost:5173'}
+        `,
+      });
+    } catch (error) {
+      console.error('Error al enviar correo de bienvenida:', error);
+    }
+  }
 
   async forgotPassword(
     dto: ForgotPasswordDto,

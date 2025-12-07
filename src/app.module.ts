@@ -15,7 +15,13 @@ import { MarcasVehiculosModule } from './modules/marcas-vehiculos/marcas-vehicul
 import { UbicacionesModule } from './modules/ubicaciones/ubicaciones.module';
 import { PrismaModule } from './database/prisma.module';
 import { RutasModule } from './modules/Rutas/rutas.module';
+<<<<<<< HEAD
 import { ReservasModule } from './modules/reservas/reservas.module';
+=======
+import { ConductoresModule } from './modules/conductores/conductores.module';
+import { TurnosModule } from './modules/turnos/turnos.module';
+import { CategoriasLicenciaModule } from './modules/categorias-licencia/categorias-licencia.module';
+>>>>>>> d490ac7d89576ca24f0665c24fe76b4ab8e51d74
 
 @Module({
   imports: [
@@ -30,8 +36,14 @@ import { ReservasModule } from './modules/reservas/reservas.module';
     TiposVehiculoModule,
     MarcasVehiculosModule,
     UbicacionesModule,
+    ConductoresModule,
     RutasModule,
+<<<<<<< HEAD
     ReservasModule,
+=======
+    TurnosModule,
+    CategoriasLicenciaModule,
+>>>>>>> d490ac7d89576ca24f0665c24fe76b4ab8e51d74
   ],
   controllers: [AppController],
   providers: [

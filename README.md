@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Sistema de gestión de transporte y rutas construido con <strong>NestJS</strong>, <strong>Prisma ORM</strong> y <strong>MySQL</strong>
+  Sistema de gestión de transporte y rutas construido con <strong>NestJS</strong>, <strong>Prisma ORM</strong> y <strong>PostgreSQL</strong>
 </p>
 
 <p align="center">

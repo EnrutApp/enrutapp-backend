@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -23,9 +23,12 @@ model Usuarios {
   resetPasswordCode    String?   @db.VarChar(100)
   resetPasswordExpires DateTime?
 
-  rol           Roles    @relation(fields: [idRol], references: [idRol])
-  tipoDocumento TiposDoc @relation(fields: [tipoDoc], references: [idTipoDoc])
-  ciudad        Ciudades @relation(fields: [idCiudad], references: [idCiudad])
+  // Relaciones
+  rol              Roles        @relation(fields: [idRol], references: [idRol])
+  tipoDocumento    TiposDoc     @relation(fields: [tipoDoc], references: [idTipoDoc])
+  ciudad           Ciudades     @relation(fields: [idCiudad], references: [idCiudad])
+  conductor        Conductores?
+  vehiculosPropios Vehiculos[]  @relation("VehiculoPropietario")
 
   conductores      Conductores[]
   reservasPrivadas ReservasPrivadas[]
@@ -34,9 +37,11 @@ model Usuarios {
 }
 
 model Ciudades {
-  idCiudad     Int        @id @default(autoincrement())
-  nombreCiudad String     @unique @db.VarChar(100)
-  usuarios     Usuarios[]
+  idCiudad     Int    @id @default(autoincrement())
+  nombreCiudad String @unique @db.VarChar(100)
+
+  // Relaciones
+  usuarios Usuarios[]
 
   @@map("Ciudades")
 }
@@ -47,6 +52,7 @@ model Roles {
   descripcion String? @db.Text
   estado      Boolean
 
+  // Relaciones
   usuarios Usuarios[]
 
   @@map("Roles")
@@ -56,6 +62,7 @@ model TiposDoc {
   idTipoDoc     String @id @db.VarChar(36)
   nombreTipoDoc String @unique @db.VarChar(50)
 
+  // Relaciones
   usuarios Usuarios[]
 
   @@map("TiposDoc")
@@ -69,6 +76,7 @@ model TiposVehiculo {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  // Relaciones
   vehiculos Vehiculos[]
 
   @@map("TiposVehiculo")
@@ -82,6 +90,7 @@ model MarcasVehiculos {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Relaciones
   vehiculos Vehiculos[]
 
   @@map("MarcasVehiculos")
@@ -91,6 +100,8 @@ model Vehiculos {
   idVehiculo               String    @id @db.VarChar(36)
   idTipoVehiculo           String    @db.VarChar(36)
   idMarcaVehiculo          String    @db.VarChar(36)
+  idPropietario            String    @db.VarChar(36)
+  idConductorAsignado      String?   @db.VarChar(36)
   placa                    String    @unique @db.VarChar(10)
   linea                    String    @db.VarChar(50)
   modelo                   Int
@@ -106,14 +117,42 @@ model Vehiculos {
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
 
-  tipoVehiculo  TiposVehiculo   @relation(fields: [idTipoVehiculo], references: [idTipoVehiculo])
-  marcaVehiculo MarcasVehiculos @relation(fields: [idMarcaVehiculo], references: [idMarcaVehiculo])
+  // Relaciones
+  tipoVehiculo      TiposVehiculo   @relation(fields: [idTipoVehiculo], references: [idTipoVehiculo])
+  marcaVehiculo     MarcasVehiculos @relation(fields: [idMarcaVehiculo], references: [idMarcaVehiculo])
+  propietario       Usuarios        @relation("VehiculoPropietario", fields: [idPropietario], references: [idUsuario])
+  conductorAsignado Conductores?    @relation("VehiculoConductorAsignado", fields: [idConductorAsignado], references: [idConductor])
+  turnos            Turnos[]
 
+<<<<<<< HEAD
   reservasPrivadas ReservasPrivadas[]
 
   @@map("Vehiculos")
 }
 
+=======
+  @@index([idTipoVehiculo])
+  @@index([idMarcaVehiculo])
+  @@index([idPropietario])
+  @@index([idConductorAsignado])
+  @@index([placa])
+  @@map("Vehiculos")
+}
+
+model Ubicaciones {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @db.VarChar(100)
+  direccion String   @db.VarChar(255)
+  latitud   Decimal? @db.Decimal(10, 8)
+  longitud  Decimal? @db.Decimal(11, 8)
+  estado    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Ubicaciones")
+}
+
+>>>>>>> d490ac7d89576ca24f0665c24fe76b4ab8e51d74
 model Ubicacion {
   idUbicacion     String   @id @default(uuid()) @db.VarChar(36)
   nombreUbicacion String   @db.VarChar(100)
@@ -167,6 +206,7 @@ model Ruta {
   @@map("Ruta")
 }
 
+<<<<<<< HEAD
 model MetodoPago {
   idMetodoPago String @id @db.VarChar(36)
   nombreMetodo String @db.VarChar(50)
@@ -230,3 +270,63 @@ model DetalleReservaPrivadaPasajero {
 
   @@map("DetalleReservaPrivadaPasajero")
 }
+=======
+model CategoriasLicencia {
+  idCategoriaLicencia String   @id @default(uuid()) @db.VarChar(36)
+  nombreCategoria     String   @unique @db.VarChar(10) // A1, A2, B1, B2, B3, C1, C2, C3
+  descripcion         String?  @db.VarChar(255)
+  estado              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relaciones
+  conductores Conductores[]
+
+  @@map("CategoriasLicencia")
+}
+
+model Conductores {
+  idConductor              String   @id @default(uuid()) @db.VarChar(36)
+  idUsuario                String   @db.VarChar(36)
+  numeroLicencia           String   @unique @db.VarChar(50)
+  idCategoriaLicencia      String   @db.VarChar(36)
+  fechaVencimientoLicencia DateTime
+  observaciones            String?  @db.Text
+  estado                   Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  // Relaciones
+  usuario            Usuarios           @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
+  categoriaLicencia  CategoriasLicencia @relation(fields: [idCategoriaLicencia], references: [idCategoriaLicencia])
+  turnos             Turnos[]
+  vehiculosAsignados Vehiculos[]        @relation("VehiculoConductorAsignado")
+
+  @@unique([idUsuario])
+  @@index([idUsuario])
+  @@index([numeroLicencia])
+  @@index([idCategoriaLicencia])
+  @@map("Conductores")
+}
+
+model Turnos {
+  idTurno     String   @id @default(uuid()) @db.VarChar(36)
+  idConductor String   @db.VarChar(36)
+  idVehiculo  String   @db.VarChar(36)
+  fecha       DateTime
+  hora        String   @db.VarChar(10)
+  estado      String   @default("Programado") @db.VarChar(20)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  conductor Conductores @relation(fields: [idConductor], references: [idConductor], onDelete: Cascade)
+  vehiculo  Vehiculos   @relation(fields: [idVehiculo], references: [idVehiculo], onDelete: Cascade)
+
+  @@index([idConductor])
+  @@index([idVehiculo])
+  @@index([fecha])
+  @@index([estado])
+  @@map("Turnos")
+}
+>>>>>>> d490ac7d89576ca24f0665c24fe76b4ab8e51d74

@@ -11,6 +11,7 @@ export class CreateUbicacionDto {
   direccion!: string;
 
   @IsOptional()
+<<<<<<< HEAD
   @IsNumber()
   @Type(() => Number)
   latitud?: number;
@@ -20,3 +21,14 @@ export class CreateUbicacionDto {
   @Type(() => Number)
   longitud?: number;
 }
+=======
+  @IsBoolean({ message: 'El estado debe ser verdadero o falso' })
+  estado?: boolean;
+
+  @IsOptional()
+  latitud?: number;
+
+  @IsOptional()
+  longitud?: number;
+}
+>>>>>>> d490ac7d89576ca24f0665c24fe76b4ab8e51d74

@@ -30,7 +30,6 @@ import { CreateVehiculoDto, UpdateVehiculoDto } from './dto';
  * Maneja las operaciones CRUD de vehículos
  */
 @ApiTags('Vehículos')
-@ApiBearerAuth('JWT-auth')
 @Controller('vehiculos')
 export class VehiculosController {
   constructor(private readonly vehiculosService: VehiculosService) {}
@@ -75,9 +74,6 @@ export class VehiculosController {
       },
     },
   })
-  @ApiUnauthorizedResponse({
-    description: 'Token no válido o expirado',
-  })
   async findAll() {
     return this.vehiculosService.findAll();
   }
@@ -85,6 +81,7 @@ export class VehiculosController {
   /**
    * Obtener un vehículo por ID
    */
+  @ApiBearerAuth('JWT-auth')
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener vehículo por ID',
@@ -112,6 +109,7 @@ export class VehiculosController {
   /**
    * Crear un nuevo vehículo
    */
+  @ApiBearerAuth('JWT-auth')
   @Post()
   @UseInterceptors(FileInterceptor('foto'))
   @ApiConsumes('multipart/form-data')
@@ -125,42 +123,8 @@ export class VehiculosController {
   })
   @ApiBadRequestResponse({ description: 'Datos inválidos o falta la foto' })
   @ApiUnauthorizedResponse({ description: 'Token no válido o expirado' })
-  @ApiResponse({
-    status: 201,
-    description: 'Usa multipart/form-data con un campo file llamado "foto"',
-  })
-  @ApiResponse({
-    status: 201,
-    description:
-      'Vehículo creado exitosamente. Enviar multipart/form-data con el archivo "foto" y los demás campos en el body.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Vehículo creado exitosamente',
-    schema: {
-      example: {
-        success: true,
-        data: {
-          idVehiculo: '550e8400-e29b-41d4-a716-446655440001',
-          placa: 'ABC123',
-          linea: 'Corolla',
-          modelo: 2023,
-          color: 'Blanco',
-          capacidadPasajeros: 5,
-          estado: true,
-        },
-        message: 'Vehículo creado exitosamente',
-      },
-    },
-  })
-  @ApiBadRequestResponse({
-    description: 'Datos inválidos o tipo/marca de vehículo no existe',
-  })
   @ApiConflictResponse({
     description: 'La placa o VIN del vehículo ya existe',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Token no válido o expirado',
   })
   async create(
     @Body() createVehiculoDto: CreateVehiculoDto,
@@ -172,6 +136,7 @@ export class VehiculosController {
   /**
    * Actualizar un vehículo existente
    */
+  @ApiBearerAuth('JWT-auth')
   @Put(':id')
   @ApiOperation({
     summary: 'Actualizar vehículo',
@@ -208,6 +173,7 @@ export class VehiculosController {
   /**
    * Eliminar un vehículo
    */
+  @ApiBearerAuth('JWT-auth')
   @Delete(':id')
   @ApiOperation({
     summary: 'Eliminar vehículo',
@@ -235,6 +201,7 @@ export class VehiculosController {
   /**
    * Subir/actualizar la foto de un vehículo
    */
+  @ApiBearerAuth('JWT-auth')
   @Post(':id/foto')
   @UseInterceptors(FileInterceptor('foto'))
   @ApiConsumes('multipart/form-data')

@@ -119,7 +119,7 @@ jobs:
       - name: 🔍 Validate Prisma schema
         run: npx prisma validate
         env:
-          DATABASE_URL: 'mysql://user:password@localhost:3306/testdb'
+          DATABASE_URL: 'postgresql://postgres:password@localhost:5432/testdb?schema=public'
 
       - name: 🔄 Generate Prisma Client
         run: npx prisma generate
