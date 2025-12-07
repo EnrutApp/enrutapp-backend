@@ -15,18 +15,12 @@ import { MarcasVehiculosModule } from './modules/marcas-vehiculos/marcas-vehicul
 import { UbicacionesModule } from './modules/ubicaciones/ubicaciones.module';
 import { PrismaModule } from './database/prisma.module';
 import { RutasModule } from './modules/Rutas/rutas.module';
+import { ReservasModule } from './modules/reservas/reservas.module';
 
-/**
- * Módulo raíz de la aplicación
- * Importa todos los módulos de funcionalidad
- */
 @Module({
   imports: [
-    // Módulo global de base de datos
     DatabaseModule,
     PrismaModule,
-
-    // Módulos de funcionalidad
     AuthModule,
     UsuariosModule,
     RolesModule,
@@ -37,6 +31,7 @@ import { RutasModule } from './modules/Rutas/rutas.module';
     MarcasVehiculosModule,
     UbicacionesModule,
     RutasModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,23 +1,22 @@
-import {
-  IsString,
-  IsBoolean,
-  IsOptional,
-  IsNotEmpty,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateUbicacionDto {
-  @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  @IsString({ message: 'El nombre debe ser un texto' })
-  @MaxLength(100, { message: 'El nombre no puede exceder 100 caracteres' })
-  nombre!: string;
+  @IsString()
+  @IsNotEmpty({ message: 'El nombre de la ubicación es obligatorio' })
+  nombreUbicacion!: string;
 
+  @IsString()
   @IsNotEmpty({ message: 'La dirección es obligatoria' })
-  @IsString({ message: 'La dirección debe ser un texto' })
-  @MaxLength(255, { message: 'La dirección no puede exceder 255 caracteres' })
   direccion!: string;
 
   @IsOptional()
-  @IsBoolean({ message: 'El estado debe ser verdadero o falso' })
-  estado?: boolean;
+  @IsNumber()
+  @Type(() => Number)
+  latitud?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  longitud?: number;
 }
