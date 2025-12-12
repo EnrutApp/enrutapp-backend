@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { TurnosService } from './turnos.service';
 import { CreateTurnoDto, UpdateTurnoDto } from './dto/index';
+import { Public } from '../../common/decorators';
 
 /**
  * Controlador de Turnos
@@ -28,6 +30,64 @@ import { CreateTurnoDto, UpdateTurnoDto } from './dto/index';
 @Controller('turnos')
 export class TurnosController {
   constructor(private readonly turnosService: TurnosService) {}
+
+  /**
+   * Buscar turnos (public)
+   * Nota: Turno = Viaje. Este endpoint reemplaza la búsqueda pública que antes vivía en /viajes/buscar.
+   */
+  @Get('buscar')
+  @Public()
+  @ApiOperation({
+    summary: 'Buscar turnos disponibles (public)',
+    description:
+      'Busca turnos por origen/destino y fecha. Pensado para la landing/compra pública.',
+  })
+  async buscar(
+    @Query('origen') origen?: string,
+    @Query('destino') destino?: string,
+    @Query('origenId') origenId?: string,
+    @Query('destinoId') destinoId?: string,
+    @Query('fecha') fecha?: string,
+  ) {
+    return this.turnosService.buscarPublico({
+      origen,
+      destino,
+      origenId,
+      destinoId,
+      fecha,
+    });
+  }
+
+  /**
+   * Turnos por ruta/fecha (public)
+   */
+  @Get('ruta/:idRuta')
+  @Public()
+  @ApiOperation({
+    summary: 'Listar turnos por ruta y fecha (public)',
+    description:
+      'Obtiene turnos de una ruta específica para una fecha. Pensado para consultas públicas.',
+  })
+  async findByRuta(
+    @Param('idRuta') idRuta: string,
+    @Query('fecha') fecha?: string,
+  ) {
+    return this.turnosService.findByRutaPublico(idRuta, fecha);
+  }
+
+  /**
+   * Asientos de un turno (public)
+   */
+  @Get(':id/asientos')
+  @Public()
+  @ApiOperation({
+    summary: 'Obtener asientos de un turno (public)',
+    description:
+      'Devuelve cantidad de asientos y asientos ocupados según pasajes del turno.',
+  })
+  async getAsientos(@Param('id') id: string) {
+    return this.turnosService.getAsientosPublico(id);
+  }
 
   /**
    * Obtener todos los turnos

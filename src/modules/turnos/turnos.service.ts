@@ -13,6 +13,14 @@ interface PrismaError extends Error {
   };
 }
 
+type TurnoBusquedaParams = {
+  origen?: string;
+  destino?: string;
+  origenId?: string;
+  destinoId?: string;
+  fecha?: string;
+};
+
 /**
  * Servicio de Turnos
  * Contiene toda la lógica de negocio relacionada con turnos
@@ -21,6 +29,21 @@ interface PrismaError extends Error {
 export class TurnosService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private parseFechaRango(fecha?: string): { start?: Date; end?: Date } {
+    if (!fecha) return {};
+    const start = new Date(`${fecha}T00:00:00.000`);
+    if (Number.isNaN(start.getTime())) return {};
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    return { start, end };
+  }
+
+  private parseAsientoToNumber(asiento?: string | null): number | null {
+    if (!asiento) return null;
+    const num = Number.parseInt(asiento, 10);
+    return Number.isFinite(num) ? num : null;
+  }
+
   /**
    * Obtiene todos los turnos con sus relaciones
    */
@@ -28,12 +51,25 @@ export class TurnosService {
     try {
       const turnos = await this.prisma.turnos.findMany({
         include: {
-          conductor: true,
+          conductor: {
+            include: {
+              usuario: true,
+            },
+          },
           vehiculo: {
             include: {
               tipoVehiculo: true,
               marcaVehiculo: true,
             },
+          },
+          ruta: {
+            include: {
+              origen: { include: { ubicacion: true } },
+              destino: { include: { ubicacion: true } },
+            },
+          },
+          _count: {
+            select: { pasajes: true, encomiendas: true },
           },
         },
         orderBy: {
@@ -68,12 +104,35 @@ export class TurnosService {
       const turno = await this.prisma.turnos.findUnique({
         where: { idTurno: id },
         include: {
-          conductor: true,
+          conductor: {
+            include: {
+              usuario: true,
+            },
+          },
           vehiculo: {
             include: {
               tipoVehiculo: true,
               marcaVehiculo: true,
             },
+          },
+          ruta: {
+            include: {
+              origen: { include: { ubicacion: true } },
+              destino: { include: { ubicacion: true } },
+              paradas: {
+                include: { ubicacion: true },
+                orderBy: { orden: 'asc' },
+              },
+            },
+          },
+          pasajes: {
+            orderBy: { createdAt: 'desc' },
+          },
+          encomiendas: {
+            orderBy: { createdAt: 'desc' },
+          },
+          _count: {
+            select: { pasajes: true, encomiendas: true },
           },
         },
       });
@@ -168,25 +227,58 @@ export class TurnosService {
         );
       }
 
+      // Verificar que exista la ruta
+      const ruta = await this.prisma.ruta.findUnique({
+        where: { idRuta: createTurnoDto.idRuta },
+      });
+
+      if (!ruta) {
+        throw new HttpException(
+          {
+            success: false,
+            error: 'La ruta especificada no existe',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // Preparar datos
       const data = {
         idTurno: createTurnoDto.idTurno || uuidv4(),
         idConductor: createTurnoDto.idConductor,
         idVehiculo: createTurnoDto.idVehiculo,
+        idRuta: createTurnoDto.idRuta,
         fecha: new Date(createTurnoDto.fecha),
         hora: createTurnoDto.hora,
         estado: createTurnoDto.estado || 'Programado',
+        cuposDisponibles:
+          typeof createTurnoDto.cuposDisponibles === 'number'
+            ? createTurnoDto.cuposDisponibles
+            : vehiculo.capacidadPasajeros,
       };
 
       const nuevoTurno = await this.prisma.turnos.create({
         data,
         include: {
-          conductor: true,
+          conductor: {
+            include: {
+              usuario: true,
+            },
+          },
           vehiculo: {
             include: {
               tipoVehiculo: true,
               marcaVehiculo: true,
             },
+          },
+          ruta: {
+            include: {
+              origen: { include: { ubicacion: true } },
+              destino: { include: { ubicacion: true } },
+            },
+          },
+          _count: {
+            select: { pasajes: true, encomiendas: true },
           },
         },
       });
@@ -287,6 +379,23 @@ export class TurnosService {
         }
       }
 
+      // Verificar ruta si se está actualizando
+      if (updateTurnoDto.idRuta) {
+        const ruta = await this.prisma.ruta.findUnique({
+          where: { idRuta: updateTurnoDto.idRuta },
+        });
+
+        if (!ruta) {
+          throw new HttpException(
+            {
+              success: false,
+              error: 'La ruta especificada no existe',
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
       // Preparar datos para actualización
       const data: Record<string, unknown> = { ...updateTurnoDto };
 
@@ -298,12 +407,25 @@ export class TurnosService {
         where: { idTurno: id },
         data,
         include: {
-          conductor: true,
+          conductor: {
+            include: {
+              usuario: true,
+            },
+          },
           vehiculo: {
             include: {
               tipoVehiculo: true,
               marcaVehiculo: true,
             },
+          },
+          ruta: {
+            include: {
+              origen: { include: { ubicacion: true } },
+              destino: { include: { ubicacion: true } },
+            },
+          },
+          _count: {
+            select: { pasajes: true, encomiendas: true },
           },
         },
       });
@@ -391,6 +513,207 @@ export class TurnosService {
         {
           success: false,
           error: 'Error al eliminar turno',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Búsqueda pública de turnos (Turno = Viaje)
+   * Incluye lo necesario para que la landing pueda renderizar horarios/precio/asientos.
+   */
+  async buscarPublico(params: TurnoBusquedaParams) {
+    try {
+      const { start, end } = this.parseFechaRango(params.fecha);
+
+      const where: Record<string, unknown> = {
+        estado: 'Programado',
+        ...(start && end
+          ? {
+              fecha: {
+                gte: start,
+                lt: end,
+              },
+            }
+          : {}),
+      };
+
+      // Filtros por origen/destino.
+      // Preferimos IDs (preciso) y dejamos compatibilidad con búsqueda por nombre (contains).
+      if (
+        params.origen ||
+        params.destino ||
+        params.origenId ||
+        params.destinoId
+      ) {
+        where.ruta = {
+          ...(params.origenId
+            ? {
+                origen: {
+                  idUbicacion: params.origenId,
+                },
+              }
+            : params.origen
+              ? {
+                  origen: {
+                    ubicacion: {
+                      nombreUbicacion: {
+                        contains: params.origen,
+                        mode: 'insensitive',
+                      },
+                    },
+                  },
+                }
+              : {}),
+          ...(params.destinoId
+            ? {
+                destino: {
+                  idUbicacion: params.destinoId,
+                },
+              }
+            : params.destino
+              ? {
+                  destino: {
+                    ubicacion: {
+                      nombreUbicacion: {
+                        contains: params.destino,
+                        mode: 'insensitive',
+                      },
+                    },
+                  },
+                }
+              : {}),
+        };
+      }
+
+      const turnos = await this.prisma.turnos.findMany({
+        where,
+        include: {
+          vehiculo: {
+            include: {
+              tipoVehiculo: true,
+              marcaVehiculo: true,
+            },
+          },
+          ruta: {
+            include: {
+              origen: { include: { ubicacion: true } },
+              destino: { include: { ubicacion: true } },
+            },
+          },
+          pasajes: {
+            select: { asiento: true },
+          },
+        },
+        orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
+      });
+
+      return {
+        success: true,
+        data: turnos,
+        message: 'Búsqueda de turnos realizada exitosamente',
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al buscar turnos',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findByRutaPublico(idRuta: string, fecha?: string) {
+    try {
+      const { start, end } = this.parseFechaRango(fecha);
+      const turnos = await this.prisma.turnos.findMany({
+        where: {
+          idRuta,
+          estado: 'Programado',
+          ...(start && end
+            ? {
+                fecha: {
+                  gte: start,
+                  lt: end,
+                },
+              }
+            : {}),
+        },
+        include: {
+          vehiculo: {
+            include: { tipoVehiculo: true, marcaVehiculo: true },
+          },
+          ruta: {
+            include: {
+              origen: { include: { ubicacion: true } },
+              destino: { include: { ubicacion: true } },
+            },
+          },
+          pasajes: { select: { asiento: true } },
+        },
+        orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
+      });
+
+      return {
+        success: true,
+        data: turnos,
+        message: 'Turnos por ruta obtenidos exitosamente',
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al obtener turnos por ruta',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getAsientosPublico(idTurno: string) {
+    try {
+      const turno = await this.prisma.turnos.findUnique({
+        where: { idTurno },
+        include: {
+          vehiculo: true,
+          pasajes: { select: { asiento: true } },
+        },
+      });
+
+      if (!turno) {
+        throw new HttpException(
+          { success: false, error: 'Turno no encontrado' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const asientos = (turno.vehiculo?.capacidadPasajeros || 0) + 1;
+      const asientosOcupados = (turno.pasajes || [])
+        .map((p) => this.parseAsientoToNumber(p.asiento))
+        .filter((n): n is number => typeof n === 'number');
+
+      return {
+        success: true,
+        data: { asientos, asientosOcupados },
+        message: 'Asientos obtenidos exitosamente',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al obtener asientos',
           message: errorMessage,
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
