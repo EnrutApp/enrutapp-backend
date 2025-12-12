@@ -19,7 +19,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.x'
           cache: 'npm'
 
       - name: 📦 Install dependencies
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: ['20.19.x', '22.12.x']
 
     steps:
       - name: 📥 Checkout code
@@ -57,11 +57,11 @@ jobs:
 
       - name: 📊 Generate coverage report
         run: npm run test:cov
-        if: matrix.node-version == 20
+        if: startsWith(matrix.node-version, '20')
 
       - name: 📤 Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: matrix.node-version == 20
+        if: startsWith(matrix.node-version, '20')
         with:
           file: ./coverage/lcov.info
           flags: unittests
@@ -81,7 +81,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.x'
           cache: 'npm'
 
       - name: 📦 Install dependencies
@@ -110,7 +110,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.x'
           cache: 'npm'
 
       - name: 📦 Install dependencies
@@ -136,7 +136,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.x'
           cache: 'npm'
 
       - name: 🔒 Run npm audit
