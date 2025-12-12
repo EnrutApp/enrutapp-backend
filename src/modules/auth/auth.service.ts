@@ -19,9 +19,11 @@ import {
   ChangePasswordDto,
   AuthResponse,
   JwtPayload,
+  GoogleLoginDto,
 } from './dto';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { OAuth2Client } from 'google-auth-library';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +31,59 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
+
+  private getGoogleClient() {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    if (!googleClientId) {
+      throw new ForbiddenException('GOOGLE_CLIENT_ID no configurado');
+    }
+    return {
+      clientId: googleClientId,
+      client: new OAuth2Client(googleClientId),
+    };
+  }
+
+  private mapAuthUser(usuario: any) {
+    const perfilCompleto =
+      usuario?.perfilCompleto === true &&
+      !!usuario?.tipoDoc &&
+      !!usuario?.idCiudad &&
+      !!usuario?.numDocumento &&
+      String(usuario?.numDocumento).trim() !== '' &&
+      !!usuario?.telefono &&
+      String(usuario?.telefono).trim() !== '' &&
+      !!usuario?.direccion &&
+      String(usuario?.direccion).trim() !== '';
+
+    return {
+      idUsuario: usuario.idUsuario,
+      nombre: usuario.nombre,
+      correo: usuario.correo,
+      perfilCompleto,
+      authProvider: usuario.authProvider,
+      rol: {
+        idRol: usuario.rol.idRol,
+        nombreRol: usuario.rol.nombreRol,
+        rolesPermisos: usuario.rol.rolesPermisos,
+      },
+      ...(usuario.tipoDocumento
+        ? {
+            tipoDocumento: {
+              idTipoDoc: usuario.tipoDocumento.idTipoDoc,
+              nombreTipoDoc: usuario.tipoDocumento.nombreTipoDoc,
+            },
+          }
+        : {}),
+      ...(usuario.ciudad
+        ? {
+            ciudad: {
+              idCiudad: usuario.ciudad.idCiudad,
+              nombreCiudad: usuario.ciudad.nombreCiudad,
+            },
+          }
+        : {}),
+    };
+  }
 
   async getUsuarioById(idUsuario: string) {
     return this.prisma.usuarios.findUnique({
@@ -73,7 +128,15 @@ export class AuthService {
       const usuario = await this.prisma.usuarios.findUnique({
         where: { correo },
         include: {
-          rol: true,
+          rol: {
+            include: {
+              rolesPermisos: {
+                include: {
+                  permiso: true,
+                },
+              },
+            },
+          },
           tipoDocumento: true,
           ciudad: true,
         },
@@ -111,31 +174,10 @@ export class AuthService {
         expiresIn,
       });
 
-      if (!usuario.ciudad) {
-        throw new UnauthorizedException(
-          'La ciudad asociada al usuario no existe',
-        );
-      }
       return {
         success: true,
         data: {
-          user: {
-            idUsuario: usuario.idUsuario,
-            nombre: usuario.nombre,
-            correo: usuario.correo,
-            rol: {
-              idRol: usuario.rol.idRol,
-              nombreRol: usuario.rol.nombreRol,
-            },
-            tipoDocumento: {
-              idTipoDoc: usuario.tipoDocumento.idTipoDoc,
-              nombreTipoDoc: usuario.tipoDocumento.nombreTipoDoc,
-            },
-            ciudad: {
-              idCiudad: usuario.ciudad.idCiudad,
-              nombreCiudad: usuario.ciudad.nombreCiudad,
-            },
-          },
+          user: this.mapAuthUser(usuario),
           access_token,
           expires_in: expiresIn,
         },
@@ -151,6 +193,122 @@ export class AuthService {
         'Error en autenticación: ' + errorMessage,
       );
     }
+  }
+
+  async loginWithGoogle(googleLoginDto: GoogleLoginDto): Promise<AuthResponse> {
+    const { idToken, remember } = googleLoginDto;
+
+    const { client, clientId } = this.getGoogleClient();
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: clientId,
+    });
+
+    const payload = ticket.getPayload();
+    const correo = payload?.email;
+    const nombreGoogle = payload?.name || payload?.given_name || 'Usuario';
+
+    if (!correo) {
+      throw new UnauthorizedException('Token de Google inválido');
+    }
+
+    if (payload?.email_verified === false) {
+      throw new UnauthorizedException('El correo de Google no está verificado');
+    }
+
+    let usuario = await this.prisma.usuarios.findUnique({
+      where: { correo },
+      include: {
+        rol: {
+          include: {
+            rolesPermisos: {
+              include: {
+                permiso: true,
+              },
+            },
+          },
+        },
+        tipoDocumento: true,
+        ciudad: true,
+      },
+    });
+
+    if (!usuario) {
+      const rolCliente = await this.prisma.roles.findFirst({
+        where: {
+          nombreRol: { equals: 'Cliente', mode: 'insensitive' },
+        },
+      });
+
+      if (!rolCliente) {
+        throw new NotFoundException('Rol Cliente no encontrado');
+      }
+
+      const googleSub = payload?.sub || uuidv4().replace(/-/g, '');
+      const contrasenaRandom = uuidv4();
+      const hashedPassword = await bcrypt.hash(contrasenaRandom, 12);
+
+      try {
+        usuario = await this.prisma.usuarios.create({
+          data: {
+            idUsuario: uuidv4(),
+            correo,
+            nombre: nombreGoogle,
+            idRol: rolCliente.idRol,
+            // Perfil incompleto: el cliente deberá completar estos datos
+            tipoDoc: null,
+            numDocumento: null,
+            telefono: null,
+            direccion: null,
+            idCiudad: null,
+            contrasena: hashedPassword,
+            estado: true,
+            perfilCompleto: false,
+            authProvider: 'google',
+          },
+          include: {
+            rol: {
+              include: {
+                rolesPermisos: {
+                  include: { permiso: true },
+                },
+              },
+            },
+            tipoDocumento: true,
+            ciudad: true,
+          },
+        });
+      } catch (error: any) {
+        throw error;
+      }
+    }
+
+    if (!usuario.estado) {
+      throw new UnauthorizedException('Usuario inactivo');
+    }
+
+    const jwtPayload: JwtPayload = {
+      sub: usuario.idUsuario,
+      correo: usuario.correo,
+      nombre: usuario.nombre,
+      rol: usuario.rol.nombreRol,
+    };
+
+    const expiresIn = remember ? '30d' : '24h';
+    const access_token = await this.jwtService.signAsync(jwtPayload, {
+      expiresIn,
+    });
+
+    return {
+      success: true,
+      data: {
+        user: this.mapAuthUser(usuario),
+        access_token,
+        expires_in: expiresIn,
+      },
+      message: 'Login con Google exitoso',
+    };
   }
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
@@ -232,6 +390,8 @@ export class AuthService {
           idRol,
           tipoDoc,
           estado: true,
+          perfilCompleto: true,
+          authProvider: 'local',
         },
         include: {
           rol: true,
@@ -261,23 +421,7 @@ export class AuthService {
       return {
         success: true,
         data: {
-          user: {
-            idUsuario: nuevoUsuario.idUsuario,
-            nombre: nuevoUsuario.nombre,
-            correo: nuevoUsuario.correo,
-            rol: {
-              idRol: nuevoUsuario.rol.idRol,
-              nombreRol: nuevoUsuario.rol.nombreRol,
-            },
-            tipoDocumento: {
-              idTipoDoc: nuevoUsuario.tipoDocumento.idTipoDoc,
-              nombreTipoDoc: nuevoUsuario.tipoDocumento.nombreTipoDoc,
-            },
-            ciudad: {
-              idCiudad: nuevoUsuario.ciudad.idCiudad,
-              nombreCiudad: nuevoUsuario.ciudad.nombreCiudad,
-            },
-          },
+          user: this.mapAuthUser(nuevoUsuario),
           access_token,
           expires_in: '24h',
         },

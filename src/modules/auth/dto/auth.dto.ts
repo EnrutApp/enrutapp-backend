@@ -41,6 +41,27 @@ export class LoginDto {
   remember?: boolean;
 }
 
+export class GoogleLoginDto {
+  @ApiProperty({
+    description: 'ID token emitido por Google Identity Services',
+    example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...',
+    type: String,
+  })
+  @IsString({ message: 'El idToken debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El idToken es obligatorio' })
+  idToken!: string;
+
+  @ApiProperty({
+    description: 'Recordar sesión del usuario',
+    example: true,
+    required: false,
+    type: Boolean,
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'Remember debe ser un booleano' })
+  remember?: boolean;
+}
+
 export class RegisterDto {
   @ApiProperty({
     description: 'ID del rol asignado al usuario',
@@ -181,9 +202,12 @@ export interface AuthResponse {
       idUsuario: string;
       nombre: string;
       correo: string;
+      perfilCompleto?: boolean;
+      authProvider?: string;
       rol: {
         idRol: string;
         nombreRol: string;
+        rolesPermisos?: any[];
       };
       tipoDocumento?: {
         idTipoDoc: string;

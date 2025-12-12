@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsBoolean,
   IsUUID,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -52,4 +53,14 @@ export class CreateRolDto {
   @IsBoolean({ message: 'El estado debe ser verdadero o falso' })
   @IsOptional()
   estado?: boolean;
+  @ApiProperty({
+    description: 'Lista de IDs de permisos a asignar',
+    example: ['uuid-permiso-1', 'uuid-permiso-2'],
+    required: false,
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  permissions?: string[];
 }

@@ -4,6 +4,7 @@ import { hash } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { CompletarPerfilClienteDto } from './dto';
 import * as nodemailer from 'nodemailer';
 
 /**
@@ -23,6 +24,176 @@ export class UsuariosService {
   });
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private esPerfilClienteCompleto(usuario: any): boolean {
+    const tipoDocOk = !!usuario.tipoDoc;
+    const numDocOk =
+      !!usuario.numDocumento && String(usuario.numDocumento).trim() !== '';
+    const telefonoOk =
+      !!usuario.telefono && String(usuario.telefono).trim() !== '';
+    const direccionOk =
+      !!usuario.direccion && String(usuario.direccion).trim() !== '';
+    const ciudadOk = !!usuario.idCiudad;
+    return tipoDocOk && numDocOk && telefonoOk && direccionOk && ciudadOk;
+  }
+
+  async verificarPerfilCliente(idUsuario: string) {
+    try {
+      const usuario = await this.prisma.usuarios.findUnique({
+        where: { idUsuario },
+        include: { rol: true },
+      });
+
+      if (!usuario) {
+        throw new HttpException(
+          { success: false, error: 'Usuario no encontrado' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const esCliente = usuario.rol?.nombreRol?.toLowerCase() === 'cliente';
+
+      if (!esCliente) {
+        return {
+          success: true,
+          data: { esCliente: false, completado: true },
+          message: 'El usuario no es Cliente',
+        };
+      }
+
+      const completado =
+        usuario.perfilCompleto === true &&
+        this.esPerfilClienteCompleto(usuario);
+
+      return {
+        success: true,
+        data: { esCliente: true, completado },
+        message: completado
+          ? 'El cliente ya tiene su perfil completo'
+          : 'El cliente debe completar su perfil',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al verificar perfil de cliente',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async completarPerfilCliente(
+    idUsuario: string,
+    dto: CompletarPerfilClienteDto,
+  ) {
+    try {
+      const usuario = await this.prisma.usuarios.findUnique({
+        where: { idUsuario },
+        include: { rol: true },
+      });
+
+      if (!usuario) {
+        throw new HttpException(
+          { success: false, error: 'Usuario no encontrado' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const esCliente = usuario.rol?.nombreRol?.toLowerCase() === 'cliente';
+
+      if (!esCliente) {
+        throw new HttpException(
+          {
+            success: false,
+            error:
+              'El usuario debe tener rol Cliente para completar este perfil',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Validar ciudad
+      const ciudad = await this.prisma.ciudades.findUnique({
+        where: { idCiudad: dto.idCiudad },
+        select: { idCiudad: true },
+      });
+      if (!ciudad) {
+        throw new HttpException(
+          { success: false, error: 'Ciudad no encontrada' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Validar tipo de documento
+      const tipoDocumento = await this.prisma.tiposDoc.findUnique({
+        where: { idTipoDoc: dto.tipoDoc },
+        select: { idTipoDoc: true },
+      });
+      if (!tipoDocumento) {
+        throw new HttpException(
+          { success: false, error: 'Tipo de documento no encontrado' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Validar unicidad del documento
+      const numDocumentoNormalizado = String(dto.numDocumento).trim();
+      const existente = await this.prisma.usuarios.findFirst({
+        where: {
+          numDocumento: numDocumentoNormalizado,
+          NOT: { idUsuario },
+        },
+        select: { idUsuario: true },
+      });
+
+      if (existente) {
+        throw new HttpException(
+          { success: false, error: 'El documento ya está registrado' },
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      const actualizado = await this.prisma.usuarios.update({
+        where: { idUsuario },
+        data: {
+          tipoDoc: dto.tipoDoc,
+          numDocumento: numDocumentoNormalizado,
+          telefono: String(dto.telefono).trim(),
+          direccion: String(dto.direccion).trim(),
+          idCiudad: dto.idCiudad,
+          perfilCompleto: true,
+        },
+        include: {
+          rol: true,
+          tipoDocumento: true,
+          ciudad: true,
+        },
+      });
+
+      return {
+        success: true,
+        data: actualizado,
+        message: 'Perfil de cliente completado exitosamente',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al completar perfil de cliente',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   /**
    * Envía correo con las credenciales al nuevo usuario
@@ -141,7 +312,10 @@ Puedes acceder al sistema en: ${process.env.FRONTEND_URL || 'http://localhost:51
         ? {
             rol: {
               is: {
-                nombreRol: filter.rol,
+                nombreRol: {
+                  equals: String(filter.rol).trim(),
+                  mode: 'insensitive' as const,
+                },
               },
             },
           }
@@ -208,6 +382,55 @@ Puedes acceder al sistema en: ${process.env.FRONTEND_URL || 'http://localhost:51
       if (error instanceof HttpException) {
         throw error;
       }
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al buscar usuario',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findWithPermissions(id: string) {
+    try {
+      const usuario = await this.prisma.usuarios.findUnique({
+        where: { idUsuario: id },
+        include: {
+          rol: {
+            include: {
+              rolesPermisos: {
+                include: {
+                  permiso: true,
+                },
+              },
+            },
+          },
+          tipoDocumento: true,
+          ciudad: true,
+        },
+      });
+
+      if (!usuario) {
+        throw new HttpException(
+          {
+            success: false,
+            error: 'Usuario no encontrado',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {
+        success: true,
+        data: usuario,
+        message: 'Usuario encontrado',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
       const errorMessage =
         error instanceof Error ? error.message : 'Error desconocido';
       throw new HttpException(

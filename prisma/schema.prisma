@@ -12,28 +12,38 @@ datasource db {
   provider = "postgresql"
 }
 
+enum TipoPlaca {
+  BLANCA
+  AMARILLA
+}
+
 model Usuarios {
   idUsuario            String    @id @db.VarChar(36)
   idRol                String    @db.VarChar(36)
   foto                 String?
-  tipoDoc              String    @db.VarChar(36)
-  numDocumento         String    @unique @db.VarChar(20)
+  tipoDoc              String?   @db.VarChar(36)
+  numDocumento         String?   @unique @db.VarChar(20)
   nombre               String    @db.VarChar(100)
-  telefono             String    @db.VarChar(20)
+  telefono             String?   @db.VarChar(20)
   correo               String    @unique @db.VarChar(100)
   contrasena           String    @db.VarChar(255)
-  direccion            String    @db.VarChar(255)
-  idCiudad             Int
+  direccion            String?   @db.VarChar(255)
+  idCiudad             Int?
   estado               Boolean
   resetPasswordCode    String?   @db.VarChar(100)
   resetPasswordExpires DateTime?
 
+  // Estado de onboarding / proveedor
+  perfilCompleto Boolean @default(true)
+  authProvider   String  @default("local") @db.VarChar(20)
+
   // Relaciones
   rol              Roles        @relation(fields: [idRol], references: [idRol])
-  tipoDocumento    TiposDoc     @relation(fields: [tipoDoc], references: [idTipoDoc])
-  ciudad           Ciudades     @relation(fields: [idCiudad], references: [idCiudad])
+  tipoDocumento    TiposDoc?    @relation(fields: [tipoDoc], references: [idTipoDoc])
+  ciudad           Ciudades?    @relation(fields: [idCiudad], references: [idCiudad])
   conductor        Conductores?
   vehiculosPropios Vehiculos[]  @relation("VehiculoPropietario")
+  pasajes          Pasajes[]
 
   @@map("Usuarios")
 }
@@ -55,9 +65,35 @@ model Roles {
   estado      Boolean
 
   // Relaciones
-  usuarios Usuarios[]
+  usuarios      Usuarios[]
+  rolesPermisos RolesPermisos[]
 
   @@map("Roles")
+}
+
+model Permisos {
+  idPermiso   String  @id @default(uuid()) @db.VarChar(36)
+  modulo      String  @db.VarChar(50)
+  nombre      String  @db.VarChar(100)
+  descripcion String? @db.Text
+  codigo      String  @unique @db.VarChar(50)
+
+  // Relaciones
+  rolesPermisos RolesPermisos[]
+
+  @@map("Permisos")
+}
+
+model RolesPermisos {
+  idRol     String @db.VarChar(36)
+  idPermiso String @db.VarChar(36)
+
+  // Relaciones
+  rol     Roles    @relation(fields: [idRol], references: [idRol], onDelete: Cascade)
+  permiso Permisos @relation(fields: [idPermiso], references: [idPermiso], onDelete: Cascade)
+
+  @@id([idRol, idPermiso])
+  @@map("RolesPermisos")
 }
 
 model TiposDoc {
@@ -99,30 +135,34 @@ model MarcasVehiculos {
 }
 
 model Vehiculos {
-  idVehiculo               String    @id @db.VarChar(36)
-  idTipoVehiculo           String    @db.VarChar(36)
-  idMarcaVehiculo          String    @db.VarChar(36)
-  idPropietario            String    @db.VarChar(36)
-  idConductorAsignado      String?   @db.VarChar(36)
-  placa                    String    @unique @db.VarChar(10)
-  linea                    String    @db.VarChar(50)
-  modelo                   Int
-  color                    String    @db.VarChar(30)
-  vin                      String?   @unique @db.VarChar(17)
-  fotoUrl                  String    @db.VarChar(255)
-  capacidadPasajeros       Int
-  capacidadCarga           Decimal?  @db.Decimal(10, 2)
-  soatVencimiento          DateTime?
-  tecnomecanicaVencimiento DateTime?
-  seguroVencimiento        DateTime?
-  estado                   Boolean   @default(true)
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  idVehiculo                  String    @id @db.VarChar(36)
+  idTipoVehiculo              String    @db.VarChar(36)
+  idMarcaVehiculo             String    @db.VarChar(36)
+  idPropietario               String?   @db.VarChar(36)
+  propietarioExternoNombre    String?   @db.VarChar(100)
+  propietarioExternoDocumento String?   @db.VarChar(20)
+  propietarioExternoTelefono  String?   @db.VarChar(20)
+  idConductorAsignado         String?   @db.VarChar(36)
+  placa                       String    @unique @db.VarChar(10)
+  tipoPlaca                   TipoPlaca @default(BLANCA)
+  linea                       String    @db.VarChar(50)
+  modelo                      Int
+  color                       String    @db.VarChar(30)
+  vin                         String?   @unique @db.VarChar(17)
+  fotoUrl                     String    @db.VarChar(255)
+  capacidadPasajeros          Int
+  capacidadCarga              Decimal?  @db.Decimal(10, 2)
+  soatVencimiento             DateTime?
+  tecnomecanicaVencimiento    DateTime?
+  seguroVencimiento           DateTime?
+  estado                      Boolean   @default(true)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   // Relaciones
   tipoVehiculo      TiposVehiculo   @relation(fields: [idTipoVehiculo], references: [idTipoVehiculo])
   marcaVehiculo     MarcasVehiculos @relation(fields: [idMarcaVehiculo], references: [idMarcaVehiculo])
-  propietario       Usuarios        @relation("VehiculoPropietario", fields: [idPropietario], references: [idUsuario])
+  propietario       Usuarios?       @relation("VehiculoPropietario", fields: [idPropietario], references: [idUsuario])
   conductorAsignado Conductores?    @relation("VehiculoConductorAsignado", fields: [idConductorAsignado], references: [idConductor])
   turnos            Turnos[]
 
@@ -153,10 +193,12 @@ model Ubicacion {
   direccion       String   @db.VarChar(255)
   latitud         Decimal? @db.Decimal(10, 8)
   longitud        Decimal? @db.Decimal(11, 8)
+  estado          Boolean  @default(true)
 
   // Relaciones
   origenes Origen[]
   destinos Destino[]
+  paradas  Parada[]
 }
 
 model Origen {
@@ -165,7 +207,7 @@ model Origen {
   descripcion String? @db.VarChar(255)
 
   // Relaciones
-  ubicacion   Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
+  ubicacion   Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion], onDelete: Cascade)
   rutasOrigen Ruta[]    @relation("RutasDesdeOrigen")
 }
 
@@ -175,7 +217,7 @@ model Destino {
   descripcion String? @db.VarChar(255)
 
   // Relaciones
-  ubicacion    Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion])
+  ubicacion    Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion], onDelete: Cascade)
   rutasDestino Ruta[]    @relation("RutasHaciaDestino")
 }
 
@@ -190,13 +232,31 @@ model Ruta {
   estado         String?  @db.VarChar(50)
 
   // Relaciones
-  origen  Origen  @relation("RutasDesdeOrigen", fields: [idOrigen], references: [idOrigen])
-  destino Destino @relation("RutasHaciaDestino", fields: [idDestino], references: [idDestino])
+  origen  Origen   @relation("RutasDesdeOrigen", fields: [idOrigen], references: [idOrigen], onDelete: Cascade)
+  destino Destino  @relation("RutasHaciaDestino", fields: [idDestino], references: [idDestino], onDelete: Cascade)
+  paradas Parada[]
+  turnos  Turnos[]
+}
+
+model Parada {
+  idParada    String   @id @default(uuid()) @db.VarChar(36)
+  idRuta      String   @db.VarChar(36)
+  idUbicacion String   @db.VarChar(36)
+  orden       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  ruta      Ruta      @relation(fields: [idRuta], references: [idRuta], onDelete: Cascade)
+  ubicacion Ubicacion @relation(fields: [idUbicacion], references: [idUbicacion], onDelete: Cascade)
+
+  @@index([idRuta])
+  @@index([idUbicacion])
+  @@map("Paradas")
 }
 
 model CategoriasLicencia {
   idCategoriaLicencia String   @id @default(uuid()) @db.VarChar(36)
-  nombreCategoria     String   @unique @db.VarChar(10) // A1, A2, B1, B2, B3, C1, C2, C3
+  nombreCategoria     String   @unique @db.VarChar(10)
   descripcion         String?  @db.VarChar(255)
   estado              Boolean  @default(true)
   createdAt           DateTime @default(now())
@@ -233,22 +293,106 @@ model Conductores {
 }
 
 model Turnos {
-  idTurno     String   @id @default(uuid()) @db.VarChar(36)
-  idConductor String   @db.VarChar(36)
-  idVehiculo  String   @db.VarChar(36)
-  fecha       DateTime
-  hora        String   @db.VarChar(10)
-  estado      String   @default("Programado") @db.VarChar(20)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  idTurno          String   @id @default(uuid()) @db.VarChar(36)
+  idConductor      String   @db.VarChar(36)
+  idVehiculo       String   @db.VarChar(36)
+  idRuta           String   @db.VarChar(36)
+  fecha            DateTime
+  hora             String   @db.VarChar(10)
+  estado           String   @default("Programado") @db.VarChar(20)
+  cuposDisponibles Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Relaciones
-  conductor Conductores @relation(fields: [idConductor], references: [idConductor], onDelete: Cascade)
-  vehiculo  Vehiculos   @relation(fields: [idVehiculo], references: [idVehiculo], onDelete: Cascade)
+  conductor   Conductores   @relation(fields: [idConductor], references: [idConductor], onDelete: Cascade)
+  vehiculo    Vehiculos     @relation(fields: [idVehiculo], references: [idVehiculo], onDelete: Cascade)
+  ruta        Ruta          @relation(fields: [idRuta], references: [idRuta], onDelete: Cascade)
+  pasajes     Pasajes[]
+  encomiendas Encomiendas[]
+  contrato    Contratos?
 
   @@index([idConductor])
   @@index([idVehiculo])
+  @@index([idRuta])
   @@index([fecha])
   @@index([estado])
   @@map("Turnos")
+}
+
+model Pasajes {
+  idPasaje          String   @id @default(uuid()) @db.VarChar(36)
+  idTurno           String   @db.VarChar(36)
+  idUsuario         String?  @db.VarChar(36)
+  nombrePasajero    String   @db.VarChar(100)
+  documentoPasajero String?  @db.VarChar(20)
+  asiento           String?  @db.VarChar(10)
+  precio            Decimal  @db.Decimal(10, 2)
+  estado            String   @default("Confirmado") @db.VarChar(20)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  turno   Turnos    @relation(fields: [idTurno], references: [idTurno], onDelete: Cascade)
+  usuario Usuarios? @relation(fields: [idUsuario], references: [idUsuario])
+
+  @@index([idTurno])
+  @@index([idUsuario])
+  @@map("Pasajes")
+}
+
+model Encomiendas {
+  idEncomienda       String   @id @default(uuid()) @db.VarChar(36)
+  idTurno            String   @db.VarChar(36)
+  remitenteNombre    String   @db.VarChar(100)
+  remitenteTel       String   @db.VarChar(20)
+  destinatarioNombre String   @db.VarChar(100)
+  destinatarioTel    String   @db.VarChar(20)
+  descripcion        String   @db.Text
+  peso               Decimal? @db.Decimal(10, 2)
+  precio             Decimal  @db.Decimal(10, 2)
+  guia               String   @unique @db.VarChar(20)
+  estado             String   @default("Pendiente") @db.VarChar(20)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  turno Turnos @relation(fields: [idTurno], references: [idTurno], onDelete: Cascade)
+
+  @@index([idTurno])
+  @@index([guia])
+  @@map("Encomiendas")
+}
+
+model Contratos {
+  idContrato String @id @default(uuid()) @db.VarChar(36)
+  idTurno    String @unique @db.VarChar(36)
+
+  // Titular (pasajero principal)
+  titularNombre    String  @db.VarChar(100)
+  titularDocumento String? @db.VarChar(20)
+
+  // Datos del vehículo / viaje (se denormaliza para consulta rápida)
+  placa              String  @db.VarChar(10)
+  tipoVehiculo       String? @db.VarChar(50)
+  capacidadPasajeros Int?
+
+  origen       String   @db.VarChar(120)
+  destino      String   @db.VarChar(120)
+  fechaOrigen  DateTime
+  fechaDestino DateTime
+
+  pasajeros Json?
+
+  // Archivo generado (servido vía /uploads)
+  pdfUrl String @db.VarChar(255)
+
+  fechaContrato DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relaciones
+  turno Turnos @relation(fields: [idTurno], references: [idTurno], onDelete: Cascade)
+
+  @@index([placa])
+  @@index([fechaContrato])
+  @@map("Contratos")
 }

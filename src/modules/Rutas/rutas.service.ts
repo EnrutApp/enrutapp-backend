@@ -1,48 +1,58 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { UpdateRutaDto } from './dto/update-ruta.dto';
 
 @Injectable()
 export class RutasService {
+  private readonly logger = new Logger(RutasService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
-  // ===== RUTAS =====
   async create(data: any) {
     try {
       // Tomar el tiempo desde 'tiempo' o 'tiempoEstimado'
       const tiempoEstimado = data.tiempo || data.tiempoEstimado || null;
 
-      console.log('Datos recibidos para crear ruta:', {
+      this.logger.log(
+        `Creando nueva ruta de ${data.idOrigen} a ${data.idDestino}`,
+      );
+
+      const rutaData: any = {
         idOrigen: data.idOrigen,
         idDestino: data.idDestino,
-        distancia: data.distancia,
-        precioBase: data.precioBase,
-        tiempoEstimado,
-        estado: data.estado,
-        observaciones: data.observaciones,
-      });
+        distancia: data.distancia
+          ? parseFloat(data.distancia.toString())
+          : null,
+        precioBase: data.precioBase
+          ? parseFloat(data.precioBase.toString())
+          : null,
+        tiempoEstimado: tiempoEstimado,
+        estado: data.estado || 'Activa',
+        observaciones: data.observaciones || null,
+      };
+
+      if (data.paradas && Array.isArray(data.paradas) && data.paradas.length > 0) {
+        rutaData.paradas = {
+          create: data.paradas.map((idUbicacion: string, index: number) => ({
+            idUbicacion,
+            orden: index + 1,
+          })),
+        };
+      }
 
       return this.prisma.ruta.create({
-        data: {
-          idOrigen: data.idOrigen,
-          idDestino: data.idDestino,
-          distancia: data.distancia
-            ? parseFloat(data.distancia.toString())
-            : null,
-          precioBase: data.precioBase
-            ? parseFloat(data.precioBase.toString())
-            : null,
-          tiempoEstimado: tiempoEstimado,
-          estado: data.estado || 'Activa',
-          observaciones: data.observaciones || null,
-        },
+        data: rutaData,
         include: {
           origen: { include: { ubicacion: true } },
           destino: { include: { ubicacion: true } },
+          paradas: {
+            include: { ubicacion: true },
+            orderBy: { orden: 'asc' },
+          },
         },
       });
     } catch (error) {
-      console.error('Error detallado al crear ruta:', error);
+      this.logger.error('Error al crear ruta', error);
       throw error;
     }
   }
@@ -52,6 +62,10 @@ export class RutasService {
       include: {
         origen: { include: { ubicacion: true } },
         destino: { include: { ubicacion: true } },
+        paradas: {
+          include: { ubicacion: true },
+          orderBy: { orden: 'asc' },
+        },
       },
     });
   }
@@ -62,14 +76,45 @@ export class RutasService {
       include: {
         origen: { include: { ubicacion: true } },
         destino: { include: { ubicacion: true } },
+        paradas: {
+          include: { ubicacion: true },
+          orderBy: { orden: 'asc' },
+        },
       },
     });
   }
 
-  async update(idRuta: string, data: UpdateRutaDto) {
+  async update(idRuta: string, data: UpdateRutaDto & { paradas?: string[] }) {
+    const updateData: any = {
+      ...data,
+    };
+
+    // Si vienen paradas, actualizamos la relación (borrar anteriores y crear nuevas)
+    if (data.paradas && Array.isArray(data.paradas)) {
+      updateData.paradas = {
+        deleteMany: {}, // Borrar existentes
+        create: data.paradas.map((idUbicacion: string, index: number) => ({
+          idUbicacion,
+          orden: index + 1,
+        })),
+      };
+    }
+    
+    // Convertir decimales si vienen en el update
+    if (data.distancia) updateData.distancia = parseFloat(data.distancia.toString());
+    if (data.precioBase) updateData.precioBase = parseFloat(data.precioBase.toString());
+
     return this.prisma.ruta.update({
       where: { idRuta },
-      data,
+      data: updateData,
+       include: {
+        origen: { include: { ubicacion: true } },
+        destino: { include: { ubicacion: true } },
+        paradas: {
+          include: { ubicacion: true },
+          orderBy: { orden: 'asc' },
+        },
+      },
     });
   }
 
@@ -77,7 +122,6 @@ export class RutasService {
     return this.prisma.ruta.delete({ where: { idRuta } });
   }
 
-  // ===== UBICACIONES =====
   async createUbicacion(data: {
     nombreUbicacion: string;
     direccion: string;
@@ -90,12 +134,14 @@ export class RutasService {
   }
 
   async findAllUbicaciones() {
-    return this.prisma.ubicacion.findMany({
+    // 1. Obtener ubicaciones de la tabla nueva
+    const ubicaciones = await this.prisma.ubicacion.findMany({
       orderBy: { nombreUbicacion: 'asc' },
     });
+
+    return ubicaciones;
   }
 
-  // ===== ORÍGEN =====
   async createOrigen(data: { idUbicacion: string; descripcion?: string }) {
     return this.prisma.origen.create({
       data,
@@ -117,7 +163,6 @@ export class RutasService {
     });
   }
 
-  // ===== DESTINO =====
   async createDestino(data: { idUbicacion: string; descripcion?: string }) {
     return this.prisma.destino.create({
       data,

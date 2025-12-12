@@ -28,4 +28,7 @@ export class CreateRutaDto {
   @IsOptional()
   @IsString()
   estado?: string;
+
+  @IsOptional()
+  paradas?: string[];
 }

@@ -6,6 +6,8 @@ import {
   IsDateString,
   IsIn,
   Matches,
+  IsInt,
+  Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -46,6 +48,16 @@ export class CreateTurnoDto {
   idVehiculo!: string;
 
   @ApiProperty({
+    description: 'ID de la ruta asignada al turno (ruta del viaje)',
+    example: '550e8400-e29b-41d4-a716-446655440010',
+    type: String,
+  })
+  @IsString({ message: 'El ID de la ruta debe ser texto' })
+  @IsNotEmpty({ message: 'El ID de la ruta es obligatorio' })
+  @IsUUID(4, { message: 'El ID de la ruta debe ser un UUID válido' })
+  idRuta!: string;
+
+  @ApiProperty({
     description: 'Fecha del turno (formato ISO 8601)',
     example: '2025-05-20T00:00:00.000Z',
     type: String,
@@ -80,4 +92,14 @@ export class CreateTurnoDto {
   })
   @IsOptional()
   estado?: string;
+
+  @ApiProperty({
+    description: 'Cupos disponibles para pasajeros (sin contar conductor)',
+    example: 12,
+    required: false,
+  })
+  @IsInt({ message: 'Los cupos disponibles deben ser un número entero' })
+  @Min(0, { message: 'Los cupos disponibles no pueden ser negativos' })
+  @IsOptional()
+  cuposDisponibles?: number;
 }

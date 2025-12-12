@@ -19,6 +19,9 @@ import { ConductoresModule } from './modules/conductores/conductores.module';
 import { TurnosModule } from './modules/turnos/turnos.module';
 import { CategoriasLicenciaModule } from './modules/categorias-licencia/categorias-licencia.module';
 import { TrackingModule } from './modules/tracking/tracking.module';
+import { PasajesModule } from './modules/pasajes/pasajes.module';
+import { EncomiendasModule } from './modules/encomiendas/encomiendas.module';
+import { ContratosModule } from './modules/contratos/contratos.module';
 
 /**
  * Módulo raíz de la aplicación
@@ -47,6 +50,9 @@ import { TrackingModule } from './modules/tracking/tracking.module';
 
     // Módulo de tracking en tiempo real (WebSockets)
     TrackingModule,
+    PasajesModule,
+    EncomiendasModule,
+    ContratosModule,
   ],
   controllers: [AppController],
   providers: [

@@ -16,6 +16,11 @@ describe('RolesService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    rolesPermisos: {
+      createMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    $transaction: jest.fn((callback) => callback(mockPrismaService)),
   };
 
   const mockRol = {

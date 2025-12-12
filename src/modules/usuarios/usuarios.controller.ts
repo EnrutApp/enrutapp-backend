@@ -7,6 +7,8 @@ import {
   Put,
   Delete,
   Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,7 +22,12 @@ import {
 } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
 import { Public } from '../../common/decorators';
-import { CreateUsuarioDto, UpdateUsuarioDto } from './dto';
+import {
+  CreateUsuarioDto,
+  UpdateUsuarioDto,
+  CompletarPerfilClienteDto,
+} from './dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 /**
  * Controlador de Usuarios
@@ -31,6 +38,56 @@ import { CreateUsuarioDto, UpdateUsuarioDto } from './dto';
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
+
+  /**
+   * Verificar si el perfil de Cliente está completo (self-service)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('verificar-perfil/me')
+  @ApiOperation({
+    summary: 'Verificar perfil de cliente del usuario autenticado',
+    description:
+      'Verifica si el usuario autenticado con rol Cliente tiene su información básica completa (documento, dirección, teléfono, ciudad).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado del perfil verificado',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token no válido o expirado',
+  })
+  async verificarPerfilCliente(@Request() req: any) {
+    const idUsuario = req.user.idUsuario;
+    return this.usuariosService.verificarPerfilCliente(idUsuario);
+  }
+
+  /**
+   * Completar perfil de Cliente (self-service)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('completar-perfil/me')
+  @ApiOperation({
+    summary: 'Completar perfil de cliente',
+    description:
+      'Permite que un usuario con rol Cliente complete su información básica faltante.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Perfil de cliente completado exitosamente',
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos inválidos o usuario sin rol de cliente',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token no válido o expirado',
+  })
+  async completarPerfilCliente(
+    @Request() req: any,
+    @Body() dto: CompletarPerfilClienteDto,
+  ) {
+    const idUsuario = req.user.idUsuario;
+    return this.usuariosService.completarPerfilCliente(idUsuario, dto);
+  }
 
   /**
    * Verificar si un correo existe
@@ -129,6 +186,7 @@ export class UsuariosController {
   @ApiUnauthorizedResponse({
     description: 'Token no válido o expirado',
   })
+  @Public()
   async findAll(@Query('rol') rol?: string) {
     return this.usuariosService.findAll({ rol });
   }
@@ -169,6 +227,7 @@ export class UsuariosController {
   @ApiUnauthorizedResponse({
     description: 'Token no válido o expirado',
   })
+  @Public()
   async findOne(@Param('id') id: string) {
     return this.usuariosService.findOne(id);
   }
@@ -236,6 +295,7 @@ export class UsuariosController {
   @ApiBadRequestResponse({
     description: 'Datos inválidos',
   })
+  @Public()
   async update(
     @Param('id') id: string,
     @Body() updateUsuarioDto: UpdateUsuarioDto,

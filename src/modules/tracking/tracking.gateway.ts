@@ -81,14 +81,19 @@ export class TrackingGateway
     const driverId = data?.driverId;
 
     if (!driverId || typeof driverId !== 'string') {
-      this.logger.warn(`⚠️ Intento de registro con driverId inválido: ${driverId}`);
-      return { success: false, message: 'driverId es requerido y debe ser un string (UUID)' };
+      this.logger.warn(
+        `⚠️ Intento de registro con driverId inválido: ${driverId}`,
+      );
+      return {
+        success: false,
+        message: 'driverId es requerido y debe ser un string (UUID)',
+      };
     }
 
     this.trackingService.registerConnection(driverId, client.id);
 
     // Unir al conductor a su room específico
-    client.join(`driver-${driverId}`);
+    void client.join(`driver-${driverId}`);
 
     // Notificar a los clientes web que hay un nuevo conductor online
     this.server.emit('driverOnline', { driverId });
@@ -107,18 +112,12 @@ export class TrackingGateway
     @MessageBody() data: UpdateLocationDto,
     @ConnectedSocket() client: Socket,
   ) {
-    const { driverId, latitude, longitude, heading, speed, timestamp } = data;
+    const { driverId, latitude, longitude, heading, speed } = data;
 
-    // Simular guardado en base de datos (console.log por ahora)
-    console.log('📍 [TRACKING] Ubicación recibida:', {
-      driverId,
-      latitude,
-      longitude,
-      heading,
-      speed,
-      timestamp: timestamp || new Date().toISOString(),
-      socketId: client.id,
-    });
+    // Simular guardado en base de datos
+    this.logger.debug(
+      `📍 [TRACKING] Ubicación recibida: driver=${driverId}, lat=${latitude}, lng=${longitude}`,
+    );
 
     // Actualizar ubicación en memoria
     const location = this.trackingService.updateLocation(
@@ -165,7 +164,7 @@ export class TrackingGateway
     const { driverId } = data;
 
     // Unir al cliente al room del conductor
-    client.join(`driver-${driverId}`);
+    void client.join(`driver-${driverId}`);
 
     // Enviar la última ubicación conocida si existe
     const lastLocation = this.trackingService.getDriverLocation(driverId);
@@ -194,7 +193,7 @@ export class TrackingGateway
     @ConnectedSocket() client: Socket,
   ) {
     const { driverId } = data;
-    client.leave(`driver-${driverId}`);
+    void client.leave(`driver-${driverId}`);
 
     this.logger.log(
       `👁️ Cliente ${client.id} desuscrito del conductor ${driverId}`,
@@ -207,7 +206,7 @@ export class TrackingGateway
    * Obtener todos los conductores online
    */
   @SubscribeMessage('getOnlineDrivers')
-  handleGetOnlineDrivers(@ConnectedSocket() client: Socket) {
+  handleGetOnlineDrivers(@ConnectedSocket() _client: Socket) {
     const drivers = this.trackingService.getAllOnlineDrivers();
 
     return { success: true, drivers };
@@ -219,7 +218,7 @@ export class TrackingGateway
   @SubscribeMessage('getDriverLocation')
   handleGetDriverLocation(
     @MessageBody() data: { driverId: string },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() _client: Socket,
   ) {
     const { driverId } = data;
     const location = this.trackingService.getDriverLocation(driverId);

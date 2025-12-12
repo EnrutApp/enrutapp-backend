@@ -21,4 +21,7 @@ export class UpdateRolDto {
   @IsBoolean({ message: 'Activo debe ser verdadero o falso' })
   @IsOptional()
   activo?: boolean;
+
+  @IsOptional()
+  permissions?: string[];
 }

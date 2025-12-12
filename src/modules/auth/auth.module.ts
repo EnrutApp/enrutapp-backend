@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtConfig } from '../../config';
+import { UsuariosModule } from '../usuarios/usuarios.module';
 
 /**
  * Módulo de Autenticación
@@ -13,6 +14,7 @@ import { JwtConfig } from '../../config';
  */
 @Module({
   imports: [
+    UsuariosModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: JwtConfig.secret,

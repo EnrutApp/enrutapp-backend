@@ -4,7 +4,7 @@ import { join } from 'path';
 import { PrismaService } from '../../database/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateVehiculoDto, UpdateVehiculoDto } from './dto';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
 
 // Interfaz para errores de Prisma
 interface PrismaError extends Error {
@@ -31,6 +31,7 @@ export class VehiculosService {
         include: {
           tipoVehiculo: true,
           marcaVehiculo: true,
+          propietario: true,
         },
         orderBy: {
           placa: 'asc',
@@ -66,6 +67,7 @@ export class VehiculosService {
         include: {
           tipoVehiculo: true,
           marcaVehiculo: true,
+          propietario: true,
         },
       });
 
@@ -109,14 +111,12 @@ export class VehiculosService {
     file?: Express.Multer.File,
   ) {
     try {
-      // Validar que se envíe archivo de foto
       if (!file) {
         throw new HttpException(
           { success: false, error: 'La foto del vehículo es obligatoria' },
           HttpStatus.BAD_REQUEST,
         );
       }
-      // Verificar que exista el tipo de vehículo
       const tipoVehiculo = await this.prisma.tiposVehiculo.findUnique({
         where: { idTipoVehiculo: createVehiculoDto.idTipoVehiculo },
       });
@@ -131,7 +131,6 @@ export class VehiculosService {
         );
       }
 
-      // Verificar que exista la marca
       const marcaVehiculo = await this.prisma.marcasVehiculos.findUnique({
         where: { idMarcaVehiculo: createVehiculoDto.idMarcaVehiculo },
       });
@@ -146,20 +145,52 @@ export class VehiculosService {
         );
       }
 
-      // Preparar datos
+      // Validar que se envíe al menos un propietario (interno o externo)
+      if (
+        !createVehiculoDto.idPropietario &&
+        (!createVehiculoDto.propietarioExternoNombre ||
+          !createVehiculoDto.propietarioExternoDocumento)
+      ) {
+        throw new HttpException(
+          {
+            success: false,
+            error:
+              'Debe especificar un propietario (Conductor registrado o Persona externa)',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Si se envía idPropietario, verificar que el usuario exista
+      if (createVehiculoDto.idPropietario) {
+        const propietario = await this.prisma.usuarios.findUnique({
+          where: { idUsuario: createVehiculoDto.idPropietario },
+        });
+        if (!propietario) {
+          throw new HttpException(
+            { success: false, error: 'El propietario seleccionado no existe' },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
       type VehiculoData = {
         idVehiculo: string;
         idTipoVehiculo: string;
         idMarcaVehiculo: string;
-        idPropietario: string;
+        idPropietario: string | null;
+        propietarioExternoNombre: string | null;
+        propietarioExternoDocumento: string | null;
+        propietarioExternoTelefono: string | null;
         idConductorAsignado: string | null;
         placa: string;
+        tipoPlaca: 'BLANCA' | 'AMARILLA';
         linea: string;
         modelo: number;
         color: string;
         vin: string | null;
         capacidadPasajeros: number;
-        capacidadCarga: Decimal | null;
+        capacidadCarga: Prisma.Decimal | null;
         soatVencimiento: Date | null;
         tecnomecanicaVencimiento: Date | null;
         seguroVencimiento: Date | null;
@@ -171,16 +202,25 @@ export class VehiculosService {
         idVehiculo: createVehiculoDto.idVehiculo || uuidv4(),
         idTipoVehiculo: createVehiculoDto.idTipoVehiculo,
         idMarcaVehiculo: createVehiculoDto.idMarcaVehiculo,
-        idPropietario: createVehiculoDto.idPropietario,
+        idPropietario: createVehiculoDto.idPropietario || null,
+        propietarioExternoNombre:
+          createVehiculoDto.propietarioExternoNombre || null,
+        propietarioExternoDocumento:
+          createVehiculoDto.propietarioExternoDocumento || null,
+        propietarioExternoTelefono:
+          createVehiculoDto.propietarioExternoTelefono || null,
         idConductorAsignado: createVehiculoDto.idConductorAsignado || null,
         placa: createVehiculoDto.placa.toUpperCase(),
+        tipoPlaca: (createVehiculoDto.tipoPlaca ?? 'BLANCA') as
+          | 'BLANCA'
+          | 'AMARILLA',
         linea: createVehiculoDto.linea,
         modelo: createVehiculoDto.modelo,
         color: createVehiculoDto.color,
         vin: createVehiculoDto.vin?.toUpperCase() || null,
         capacidadPasajeros: createVehiculoDto.capacidadPasajeros,
         capacidadCarga: createVehiculoDto.capacidadCarga
-          ? new Decimal(createVehiculoDto.capacidadCarga)
+          ? new Prisma.Decimal(createVehiculoDto.capacidadCarga)
           : null,
         soatVencimiento: createVehiculoDto.soatVencimiento
           ? new Date(createVehiculoDto.soatVencimiento)
@@ -265,7 +305,6 @@ export class VehiculosService {
         );
       }
 
-      // Verificar tipo de vehículo si se está actualizando
       if (updateVehiculoDto.idTipoVehiculo) {
         const tipoVehiculo = await this.prisma.tiposVehiculo.findUnique({
           where: { idTipoVehiculo: updateVehiculoDto.idTipoVehiculo },
@@ -281,7 +320,6 @@ export class VehiculosService {
         }
       }
 
-      // Verificar marca si se está actualizando
       if (updateVehiculoDto.idMarcaVehiculo) {
         const marcaVehiculo = await this.prisma.marcasVehiculos.findUnique({
           where: { idMarcaVehiculo: updateVehiculoDto.idMarcaVehiculo },
@@ -297,8 +335,14 @@ export class VehiculosService {
         }
       }
 
-      // Preparar datos para actualización
       const data: Record<string, unknown> = { ...updateVehiculoDto };
+
+      if (data.tipoPlaca && typeof data.tipoPlaca === 'string') {
+        const normalized = data.tipoPlaca.toUpperCase();
+        if (normalized === 'BLANCA' || normalized === 'AMARILLA') {
+          data.tipoPlaca = normalized;
+        }
+      }
 
       if (data.placa && typeof data.placa === 'string') {
         data.placa = data.placa.toUpperCase();
@@ -309,7 +353,7 @@ export class VehiculosService {
       if (data.capacidadCarga !== undefined) {
         data.capacidadCarga =
           typeof data.capacidadCarga === 'number' && data.capacidadCarga > 0
-            ? new Decimal(data.capacidadCarga)
+            ? new Prisma.Decimal(data.capacidadCarga)
             : null;
       }
       if (data.soatVencimiento && typeof data.soatVencimiento === 'string') {
@@ -326,6 +370,46 @@ export class VehiculosService {
         typeof data.seguroVencimiento === 'string'
       ) {
         data.seguroVencimiento = new Date(data.seguroVencimiento);
+      }
+
+      // Validar integridad de propietario si se intenta actualizar
+      if (data.idPropietario || data.propietarioExternoNombre) {
+        // Si envia idPropietario, verificar que exista
+        if (data.idPropietario) {
+          const propietario = await this.prisma.usuarios.findUnique({
+            where: { idUsuario: data.idPropietario as string },
+          });
+          if (!propietario) {
+            throw new HttpException(
+              {
+                success: false,
+                error: 'El propietario seleccionado no existe',
+              },
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+          // Limpiar datos externos si se asigna interno
+          data.propietarioExternoNombre = null;
+          data.propietarioExternoDocumento = null;
+          data.propietarioExternoTelefono = null;
+        } else if (data.propietarioExternoNombre) {
+          // Si envia externo, limpiar interno
+          data.idPropietario = null;
+
+          // Validar que tenga documento al menos si es nuevo externo
+          if (
+            !data.propietarioExternoDocumento &&
+            !existente.propietarioExternoDocumento
+          ) {
+            throw new HttpException(
+              {
+                success: false,
+                error: 'Debe proporcionar el documento del propietario externo',
+              },
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+        }
       }
 
       const vehiculoActualizado = await this.prisma.vehiculos.update({

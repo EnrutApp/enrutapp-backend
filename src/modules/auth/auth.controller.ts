@@ -29,7 +29,12 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, ChangePasswordDto } from './dto';
+import {
+  LoginDto,
+  RegisterDto,
+  ChangePasswordDto,
+  GoogleLoginDto,
+} from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../../common/decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -64,10 +69,36 @@ interface CambiarEstadoDto {
   estado: boolean;
 }
 
+import { UsuariosService } from '../usuarios/usuarios.service';
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usuariosService: UsuariosService,
+  ) {}
+
+  // ... (existing code omitted)
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Obtener datos completos del usuario',
+    description:
+      'Retorna toda la información del usuario autenticado incluyendo relaciones y permisos',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Datos del usuario obtenidos exitosamente',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token no válido o expirado',
+  })
+  async getCurrentUser(@Request() req: AuthenticatedRequest) {
+    return this.usuariosService.findWithPermissions(req.user.idUsuario);
+  }
 
   @Public()
   @Post('login')
@@ -113,6 +144,26 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Iniciar sesión / Registrarse con Google (Clientes)',
+    description:
+      'Verifica el ID token de Google y retorna un JWT. Si el usuario no existe, se crea como Cliente con datos por defecto.',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Login/registro con Google exitoso. Retorna token JWT y datos del usuario',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token de Google inválido o no verificable',
+  })
+  async googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
+    return this.authService.loginWithGoogle(googleLoginDto);
   }
 
   @Public()
@@ -218,28 +269,6 @@ export class AuthController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({
-    summary: 'Obtener datos completos del usuario',
-    description:
-      'Retorna toda la información del usuario autenticado incluyendo relaciones',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Datos del usuario obtenidos exitosamente',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Token no válido o expirado',
-  })
-  getCurrentUser(@Request() req: AuthenticatedRequest) {
-    return {
-      success: true,
-      data: req.user,
-      message: 'Usuario actual obtenido exitosamente',
-    };
-  }
   @Public()
   @Post('forgot-password')
   @ApiOperation({

@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,10 +18,11 @@ import {
   ApiNotFoundResponse,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import { Public } from '../../common/decorators';
-import { CreateRolDto, UpdateRolDto } from './dto';
+import { CreateRolDto, UpdateRolDto, UpdateRolePermissionsDto } from './dto';
 
 /**
  * Controlador de Roles
@@ -67,6 +69,19 @@ export class RolesController {
   })
   async findAll() {
     return this.rolesService.findAll();
+  }
+
+  /**
+   * Obtener todos los permisos del sistema
+   */
+  @Public()
+  @Get('permissions-list')
+  @ApiOperation({
+    summary: 'Listar todos los permisos disponibles',
+    description: 'Devuelve todos los permisos agrupados por módulo',
+  })
+  async getAllPermissions() {
+    return this.rolesService.getAllPermissions();
   }
 
   /**
@@ -213,7 +228,39 @@ export class RolesController {
   @ApiUnauthorizedResponse({
     description: 'Token no válido o expirado',
   })
-  async remove(@Param('id') id: string) {
-    return this.rolesService.remove(id);
+  async remove(@Param('id') id: string, @Query('cascade') cascade?: string) {
+    return this.rolesService.remove(id, cascade === 'true');
+  }
+
+  /**
+   * Obtener todos los permisos del sistema
+   */
+
+  /**
+   * Obtener permisos de un rol
+   */
+  @Get(':id/permissions')
+  @ApiOperation({
+    summary: 'Obtener permisos de un rol',
+    description: 'Devuelve la lista de permisos asignados a un rol específico',
+  })
+  async getRolePermissions(@Param('id') id: string) {
+    return this.rolesService.getRolePermissions(id);
+  }
+
+  /**
+   * Actualizar permisos de un rol
+   */
+  @Put(':id/permissions')
+  @ApiOperation({
+    summary: 'Actualizar permisos de un rol',
+    description: 'Reemplaza los permisos asignados a un rol',
+  })
+  @ApiBody({ type: UpdateRolePermissionsDto })
+  async updateRolePermissions(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateRolePermissionsDto,
+  ) {
+    return this.rolesService.updateRolePermissions(id, updateDto.permissions);
   }
 }

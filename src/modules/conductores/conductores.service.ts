@@ -852,6 +852,17 @@ export class ConductoresService {
       // El número de licencia es el mismo que el número de documento
       const numeroLicencia = usuario.numDocumento;
 
+      if (!numeroLicencia) {
+        throw new HttpException(
+          {
+            success: false,
+            error:
+              'El usuario debe tener número de documento para completar el perfil de conductor',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // Verificar si ya existe otro conductor con el mismo número de licencia
       const licenciaExistente = await this.prisma.conductores.findUnique({
         where: { numeroLicencia },

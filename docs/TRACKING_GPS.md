@@ -2,7 +2,7 @@
 
 ## Descripción
 
-Sistema de tracking GPS en tiempo real estilo "Uber" para conductores. Permite ver la ubicación de los conductores desde el panel de administración web y compartir su ubicación desde la app móvil.
+Sistema de tracking GPS en tiempo real para conductores. Permite ver la ubicación de los conductores desde el panel de administración web y compartir su ubicación desde la app móvil.
 
 ## Arquitectura
 

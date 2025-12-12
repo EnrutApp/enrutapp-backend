@@ -107,7 +107,22 @@ export class RolesService {
           typeof createRolDto.estado === 'boolean' ? createRolDto.estado : true,
       };
 
-      const nuevoRol = await this.prisma.roles.create({ data });
+      const nuevoRol = await this.prisma.$transaction(async (tx) => {
+        const rol = await tx.roles.create({ data });
+
+        if (createRolDto.permissions && createRolDto.permissions.length > 0) {
+          const rolesPermisosData = createRolDto.permissions.map(
+            (idPermiso) => ({
+              idRol: rol.idRol,
+              idPermiso,
+            }),
+          );
+          await tx.rolesPermisos.createMany({
+            data: rolesPermisosData,
+          });
+        }
+        return rol;
+      });
 
       return {
         success: true,
@@ -169,20 +184,53 @@ export class RolesService {
         );
       }
 
+      let permissions: string[] | undefined;
+
       // Permitir alias 'activo' desde frontend
       if ('activo' in updateRolDto && updateRolDto.activo !== undefined) {
         updateRolDto.estado = !!updateRolDto.activo;
         delete updateRolDto.activo;
       }
 
-      const rolActualizado = await this.prisma.roles.update({
-        where: { idRol: id },
-        data: updateRolDto,
+      // Extract permissions if present
+      if ('permissions' in updateRolDto) {
+        permissions = updateRolDto['permissions'];
+        delete updateRolDto['permissions'];
+      }
+
+      // Transaction to update role and permissions if provided
+      const result = await this.prisma.$transaction(async (tx) => {
+        // 1. Update Role Details
+        const rolActualizado = await tx.roles.update({
+          where: { idRol: id },
+          data: updateRolDto,
+        });
+
+        // 2. Update Permissions if provided
+        if (permissions !== undefined) {
+          // Delete old
+          await tx.rolesPermisos.deleteMany({
+            where: { idRol: id },
+          });
+
+          // Insert new
+          if (Array.isArray(permissions) && permissions.length > 0) {
+            const newPermissions = permissions.map((idPermiso) => ({
+              idRol: id,
+              idPermiso,
+            }));
+            await tx.rolesPermisos.createMany({
+              data: newPermissions,
+            });
+          }
+        }
+
+        return rolActualizado;
       });
 
       return {
         success: true,
-        data: rolActualizado,
+        data: result,
         message: 'Rol actualizado exitosamente',
       };
     } catch (error) {
@@ -219,7 +267,7 @@ export class RolesService {
    * Elimina un rol
    * No permite eliminar el rol Administrador ni roles con usuarios asociados
    */
-  async remove(id: string) {
+  async remove(id: string, cascade: boolean = false) {
     try {
       const existente = await this.prisma.roles.findUnique({
         where: { idRol: id },
@@ -234,7 +282,10 @@ export class RolesService {
       }
 
       // Proteger rol Administrador
-      if (existente.nombreRol === 'Administrador') {
+      if (
+        existente.nombreRol === 'Administrador' ||
+        existente.nombreRol === 'Admin'
+      ) {
         throw new HttpException(
           {
             success: false,
@@ -244,18 +295,56 @@ export class RolesService {
         );
       }
 
-      // Verificar que no tenga usuarios
-      if (existente.usuarios && existente.usuarios.length > 0) {
+      // Verificar dependencias si no es cascada
+      if (!cascade && existente.usuarios && existente.usuarios.length > 0) {
         throw new HttpException(
           {
             success: false,
             error: 'No se puede eliminar un rol con usuarios asociados',
+            data: {
+              usuarios: existente.usuarios.map((u) => u.nombre),
+            },
           },
           HttpStatus.CONFLICT,
         );
       }
 
-      await this.prisma.roles.delete({ where: { idRol: id } });
+      await this.prisma.$transaction(async (tx) => {
+        // Si es cascada, manejar dependencias antes de eliminar
+        if (cascade && existente.usuarios && existente.usuarios.length > 0) {
+          const idsUsuarios = existente.usuarios.map((u) => u.idUsuario);
+
+          // 1. Desvincular vehículos donde los usuarios son propietarios
+          await tx.vehiculos.updateMany({
+            where: { idPropietario: { in: idsUsuarios } },
+            data: { idPropietario: null },
+          });
+
+          // 2. Encontrar conductores asociados a estos usuarios
+          const conductores = await tx.conductores.findMany({
+            where: { idUsuario: { in: idsUsuarios } },
+            select: { idConductor: true },
+          });
+
+          if (conductores.length > 0) {
+            const idsConductores = conductores.map((c) => c.idConductor);
+
+            // 3. Desvincular vehículos asignados a estos conductores
+            await tx.vehiculos.updateMany({
+              where: { idConductorAsignado: { in: idsConductores } },
+              data: { idConductorAsignado: null },
+            });
+          }
+
+          // 4. Eliminar usuarios (cascada eliminará conductores y turnos)
+          await tx.usuarios.deleteMany({
+            where: { idRol: id },
+          });
+        }
+
+        // 5. Eliminar el rol
+        await tx.roles.delete({ where: { idRol: id } });
+      });
 
       return {
         success: true,
@@ -282,6 +371,193 @@ export class RolesService {
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Obtener todos los permisos disponibles
+   * Si no hay permisos, se aseguran los permisos por defecto
+   */
+  async getAllPermissions() {
+    try {
+      // Verificar si existen permisos
+      // Asegurar que existan todos los permisos del sistema
+      await this.seedPermissions();
+
+      const permisos = await this.prisma.permisos.findMany({
+        orderBy: { modulo: 'asc' },
+      });
+
+      // Agrupar por módulo
+      const grouped = permisos.reduce(
+        (acc, curr) => {
+          const mod = curr.modulo || 'Otros';
+          if (!acc[mod]) {
+            acc[mod] = [];
+          }
+          acc[mod].push(curr);
+          return acc;
+        },
+        {} as Record<string, typeof permisos>,
+      );
+
+      return {
+        success: true,
+        data: grouped,
+        message: 'Permisos obtenidos exitosamente',
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al obtener permisos',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Obtener permisos de un rol específico
+   */
+  async getRolePermissions(idRol: string) {
+    try {
+      const permisos = await this.prisma.rolesPermisos.findMany({
+        where: { idRol },
+        include: { permiso: true },
+      });
+
+      return {
+        success: true,
+        data: permisos.map((rp) => rp.permiso),
+        message: 'Permisos del rol obtenidos',
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al obtener permisos del rol',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Actualizar permisos de un rol
+   */
+  async updateRolePermissions(idRol: string, permissionIds: string[]) {
+    try {
+      // Verificar que el rol existe
+      const rol = await this.prisma.roles.findUnique({
+        where: { idRol },
+      });
+
+      if (!rol) {
+        throw new HttpException(
+          { success: false, error: 'Rol no encontrado' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // No permitir modificar Admin
+      if (rol.nombreRol === 'Administrador' || rol.nombreRol === 'Admin') {
+        throw new HttpException(
+          {
+            success: false,
+            error: 'No se pueden modificar permisos del Administrador',
+          },
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      // Transacción para reemplazar permisos
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Eliminar permisos actuales
+        await tx.rolesPermisos.deleteMany({
+          where: { idRol },
+        });
+
+        // 2. Insertar nuevos permisos
+        if (permissionIds.length > 0) {
+          const newPermissions = permissionIds.map((idPermiso) => ({
+            idRol,
+            idPermiso,
+          }));
+          await tx.rolesPermisos.createMany({
+            data: newPermissions,
+          });
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Permisos actualizados exitosamente',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al actualizar permisos',
+          message: errorMessage,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Seed inicial de permisos (privado)
+   */
+  private async seedPermissions() {
+    const modules = [
+      'Dashboard',
+      'Reservas',
+      'Conductores',
+      'Vehiculos',
+      'Usuarios',
+      'Roles',
+      'Rutas',
+      'Ubicaciones',
+      'Turnos',
+      'Turnos',
+      'Finanzas',
+      'Tracking',
+      'Encomiendas',
+      'Clientes',
+      'Contratos',
+    ];
+
+    const permissionsData = modules.map((mod) => ({
+      idPermiso: uuidv4(),
+      modulo: mod,
+      nombre: `Acceso a ${mod}`,
+      descripcion: `Permite acceder al módulo de ${mod}`,
+      codigo: `VER_${mod.toUpperCase()}`,
+    }));
+
+    // We will upsert or create only if not exists to avoid conflicts with static UUIDs from previous seed attempts
+    // Better strategy: check for existing permissions by code, then create missing ones.
+
+    for (const data of permissionsData) {
+      const exists = await this.prisma.permisos.findUnique({
+        where: { codigo: data.codigo },
+      });
+
+      if (!exists) {
+        await this.prisma.permisos.create({
+          data,
+        });
+      }
     }
   }
 }

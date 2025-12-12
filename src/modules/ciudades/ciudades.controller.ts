@@ -1,6 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CiudadesService } from './ciudades.service';
+import { CreateCiudadDto } from './dto/create-ciudad.dto';
 import { Public } from '../../common/decorators';
 
 /**
@@ -11,6 +12,23 @@ import { Public } from '../../common/decorators';
 @Controller('ciudades')
 export class CiudadesController {
   constructor(private readonly ciudadesService: CiudadesService) {}
+
+  /**
+   * Crear una nueva ciudad
+   */
+  @Public()
+  @Post()
+  @ApiOperation({
+    summary: 'Crear ciudad',
+    description: 'Crea una nueva ciudad en el catálogo',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Ciudad creada exitosamente',
+  })
+  async create(@Body() createCiudadDto: CreateCiudadDto) {
+    return this.ciudadesService.create(createCiudadDto);
+  }
 
   /**
    * Obtener todas las ciudades

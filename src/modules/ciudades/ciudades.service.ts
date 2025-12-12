@@ -10,6 +10,34 @@ export class CiudadesService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Crea una nueva ciudad
+   */
+  async create(createCiudadDto: any) {
+    try {
+      const ciudad = await this.prisma.ciudades.create({
+        data: {
+          nombreCiudad: createCiudadDto.nombreCiudad,
+        },
+      });
+
+      return {
+        success: true,
+        data: ciudad,
+        message: 'Ciudad creada exitosamente',
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Error al crear ciudad',
+          message: error instanceof Error ? error.message : 'Error desconocido',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Obtiene todas las ciudades ordenadas alfabéticamente
    */
   async findAll() {

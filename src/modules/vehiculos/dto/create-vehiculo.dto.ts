@@ -8,6 +8,7 @@ import {
   IsPositive,
   IsNumber,
   IsDateString,
+  IsIn,
   Length,
   Min,
   Max,
@@ -15,6 +16,8 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type, Transform } from 'class-transformer';
+
+export type TipoPlaca = 'BLANCA' | 'AMARILLA';
 
 /**
  * DTO para crear un nuevo vehículo
@@ -61,8 +64,56 @@ export class CreateVehiculoDto {
     format: 'uuid',
   })
   @IsUUID('all', { message: 'El ID del propietario debe ser un UUID válido' })
-  @IsNotEmpty({ message: 'El propietario del vehículo es obligatorio' })
-  idPropietario!: string;
+  @IsOptional()
+  idPropietario?: string;
+
+  @ApiProperty({
+    description:
+      'Nombre del propietario externo (si no es usuario del sistema)',
+    example: 'Juan Pérez',
+    required: false,
+    type: String,
+    maxLength: 100,
+  })
+  @IsString({ message: 'El nombre del propietario externo debe ser texto' })
+  @IsOptional()
+  @Length(3, 100, {
+    message:
+      'El nombre del propietario externo debe tener entre 3 y 100 caracteres',
+  })
+  propietarioExternoNombre?: string;
+
+  @ApiProperty({
+    description:
+      'Documento del propietario externo (si no es usuario del sistema)',
+    example: '1234567890',
+    required: false,
+    type: String,
+    maxLength: 20,
+  })
+  @IsString({ message: 'El documento del propietario externo debe ser texto' })
+  @IsOptional()
+  @Length(5, 20, {
+    message:
+      'El documento del propietario externo debe tener entre 5 y 20 caracteres',
+  })
+  propietarioExternoDocumento?: string;
+
+  @ApiProperty({
+    description:
+      'Teléfono del propietario externo (si no es usuario del sistema)',
+    example: '3001234567',
+    required: false,
+    type: String,
+    maxLength: 20,
+  })
+  @IsString({ message: 'El teléfono del propietario externo debe ser texto' })
+  @IsOptional()
+  @Length(7, 20, {
+    message:
+      'El teléfono del propietario externo debe tener entre 7 y 20 caracteres',
+  })
+  propietarioExternoTelefono?: string;
 
   @ApiProperty({
     description: 'ID del conductor asignado al vehículo (opcional)',
@@ -88,6 +139,18 @@ export class CreateVehiculoDto {
     message: 'La placa solo puede contener letras mayúsculas y números',
   })
   placa!: string;
+
+  @ApiProperty({
+    description: 'Tipo de placa del vehículo',
+    enum: ['BLANCA', 'AMARILLA'],
+    example: 'BLANCA',
+    required: false,
+  })
+  @IsIn(['BLANCA', 'AMARILLA'], {
+    message: 'El tipo de placa debe ser BLANCA o AMARILLA',
+  })
+  @IsOptional()
+  tipoPlaca?: TipoPlaca;
 
   @ApiProperty({
     description: 'Línea o modelo del vehículo',
