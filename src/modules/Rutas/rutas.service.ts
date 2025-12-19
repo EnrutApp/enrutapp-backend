@@ -31,7 +31,11 @@ export class RutasService {
         observaciones: data.observaciones || null,
       };
 
-      if (data.paradas && Array.isArray(data.paradas) && data.paradas.length > 0) {
+      if (
+        data.paradas &&
+        Array.isArray(data.paradas) &&
+        data.paradas.length > 0
+      ) {
         rutaData.paradas = {
           create: data.paradas.map((idUbicacion: string, index: number) => ({
             idUbicacion,
@@ -99,15 +103,19 @@ export class RutasService {
         })),
       };
     }
-    
+
     // Convertir decimales si vienen en el update
-    if (data.distancia) updateData.distancia = parseFloat(data.distancia.toString());
-    if (data.precioBase) updateData.precioBase = parseFloat(data.precioBase.toString());
+    if (data.distancia) {
+      updateData.distancia = parseFloat(data.distancia.toString());
+    }
+    if (data.precioBase) {
+      updateData.precioBase = parseFloat(data.precioBase.toString());
+    }
 
     return this.prisma.ruta.update({
       where: { idRuta },
       data: updateData,
-       include: {
+      include: {
         origen: { include: { ubicacion: true } },
         destino: { include: { ubicacion: true } },
         paradas: {

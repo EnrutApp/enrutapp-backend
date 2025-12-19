@@ -135,7 +135,10 @@ describe('RolesController', () => {
       const result = await controller.remove(mockRol.idRol);
 
       expect(result).toEqual(expectedResult);
-      expect(mockRolesService.remove).toHaveBeenCalledWith(mockRol.idRol);
+      expect(mockRolesService.remove).toHaveBeenCalledWith(
+        mockRol.idRol,
+        false,
+      );
     });
   });
 });

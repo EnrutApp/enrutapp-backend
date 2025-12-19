@@ -245,43 +245,39 @@ export class AuthService {
         throw new NotFoundException('Rol Cliente no encontrado');
       }
 
-      const googleSub = payload?.sub || uuidv4().replace(/-/g, '');
+      const _googleSub = payload?.sub || uuidv4().replace(/-/g, '');
       const contrasenaRandom = uuidv4();
       const hashedPassword = await bcrypt.hash(contrasenaRandom, 12);
 
-      try {
-        usuario = await this.prisma.usuarios.create({
-          data: {
-            idUsuario: uuidv4(),
-            correo,
-            nombre: nombreGoogle,
-            idRol: rolCliente.idRol,
-            // Perfil incompleto: el cliente deberá completar estos datos
-            tipoDoc: null,
-            numDocumento: null,
-            telefono: null,
-            direccion: null,
-            idCiudad: null,
-            contrasena: hashedPassword,
-            estado: true,
-            perfilCompleto: false,
-            authProvider: 'google',
-          },
-          include: {
-            rol: {
-              include: {
-                rolesPermisos: {
-                  include: { permiso: true },
-                },
+      usuario = await this.prisma.usuarios.create({
+        data: {
+          idUsuario: uuidv4(),
+          correo,
+          nombre: nombreGoogle,
+          idRol: rolCliente.idRol,
+          // Perfil incompleto: el cliente deberá completar estos datos
+          tipoDoc: null,
+          numDocumento: null,
+          telefono: null,
+          direccion: null,
+          idCiudad: null,
+          contrasena: hashedPassword,
+          estado: true,
+          perfilCompleto: false,
+          authProvider: 'google',
+        },
+        include: {
+          rol: {
+            include: {
+              rolesPermisos: {
+                include: { permiso: true },
               },
             },
-            tipoDocumento: true,
-            ciudad: true,
           },
-        });
-      } catch (error: any) {
-        throw error;
-      }
+          tipoDocumento: true,
+          ciudad: true,
+        },
+      });
     }
 
     if (!usuario.estado) {

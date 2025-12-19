@@ -33,7 +33,7 @@ export class EncomiendasService {
       });
 
       return encomienda;
-    } catch (error) {
+    } catch {
       throw new HttpException(
         'Error al crear encomienda',
         HttpStatus.INTERNAL_SERVER_ERROR,

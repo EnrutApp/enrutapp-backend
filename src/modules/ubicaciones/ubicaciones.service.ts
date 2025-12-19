@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateUbicacionDto } from './dto/create-ubicacion.dto';
 import { UpdateUbicacionDto } from './dto/update-ubicacion.dto';
@@ -10,17 +14,17 @@ export class UbicacionesService {
   async create(data: CreateUbicacionDto) {
     // Validar nombre único (case insensitive)
     const existe = await this.prisma.ubicacion.findFirst({
-      where: { 
+      where: {
         nombreUbicacion: {
           equals: data.nombreUbicacion,
           mode: 'insensitive',
-        }
+        },
       },
     });
 
     if (existe) {
       throw new ConflictException(
-        `Ya existe una ubicación con el nombre "${data.nombreUbicacion}"`
+        `Ya existe una ubicación con el nombre "${data.nombreUbicacion}"`,
       );
     }
 
@@ -69,7 +73,7 @@ export class UbicacionesService {
 
       if (existe) {
         throw new ConflictException(
-          `Ya existe una ubicación con el nombre "${data.nombreUbicacion}"`
+          `Ya existe una ubicación con el nombre "${data.nombreUbicacion}"`,
         );
       }
     }
@@ -102,8 +106,7 @@ export class UbicacionesService {
   }
 
   async checkRutasActivas(id: string) {
-    const ubicacion = await this.findOne(id);
-    const nombreUbicacion = ubicacion.nombreUbicacion;
+    await this.findOne(id);
 
     // Buscar rutas donde esta ubicación es el Origen
     const origenes = await this.prisma.origen.findMany({
@@ -147,7 +150,7 @@ export class UbicacionesService {
       },
     });
 
-    let rutasActivas: any[] = [];
+    const rutasActivas: any[] = [];
 
     // Procesar rutas como Origen
     origenes.forEach((origen) => {
@@ -166,7 +169,7 @@ export class UbicacionesService {
     // Procesar rutas como Destino
     destinos.forEach((destino) => {
       destino.rutasDestino.forEach((ruta) => {
-         rutasActivas.push({
+        rutasActivas.push({
           idRuta: ruta.idRuta,
           origen: ruta.origen.ubicacion.nombreUbicacion,
           destino: ruta.destino.ubicacion.nombreUbicacion, // Debería ser igual a nombreUbicacion
@@ -177,7 +180,7 @@ export class UbicacionesService {
     // Eliminar duplicados si una ruta va de A a A (raro pero posible)
     const uniqueRutas = rutasActivas.filter(
       (ruta, index, self) =>
-        index === self.findIndex((t) => t.idRuta === ruta.idRuta)
+        index === self.findIndex((t) => t.idRuta === ruta.idRuta),
     );
 
     return {
@@ -190,7 +193,7 @@ export class UbicacionesService {
   async forceDelete(id: string) {
     // Verificar que existe
     await this.findOne(id);
-    
+
     // Hard Delete directo (el esquema cascade se encarga de lo demás)
     return this.prisma.ubicacion.delete({
       where: { idUbicacion: id },

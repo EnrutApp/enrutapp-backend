@@ -8,7 +8,6 @@ import {
   Delete,
   UsePipes,
   ValidationPipe,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { UbicacionesService } from './ubicaciones.service';
 import { CreateUbicacionDto } from './dto/create-ubicacion.dto';
@@ -62,7 +61,7 @@ export class UbicacionesController {
   }
 
   @Post('batch-delete')
-  removeBatch(@Body() body: { ids: string[] }) {
+  removeBatch(@Body() _body: { ids: string[] }) {
     // Implement batch delete logic in service or verify if frontend iterates.
     // Frontend `handleDeleteMultipleConfirm` maps and calls remove one by one (Wait, line 387 in UbicacionesPage.jsx).
     // But `removeBatch` is defined in service line 40 as `apiClient.post('/ubicaciones/batch-delete', { ids })`.
